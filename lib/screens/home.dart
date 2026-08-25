@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/components/bottom_nav_bar.dart'; // import component
+import 'package:flutter_application_2/components/top_header.dart';     // import component
 import 'package:flutter_application_2/screens/profile.dart';
 
 // Create Simple My App Widget
@@ -12,16 +14,19 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   String inputName = '';
   final TextEditingController nameInputController = TextEditingController();
+
+  // Tracks which bottom nav tab is selected
+  int _currentIndex = 0;
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'My App',
       home: Scaffold(
-        appBar: AppBar(
-          title: Text("Personal App"),
-          backgroundColor: Colors.orangeAccent,
-          foregroundColor: Colors.white,
-        ),
+        // ── Use TopHeader component ──
+        // We pass 'title' as a parameter — same component, different title per screen
+        appBar: TopHeader(title: 'Personal App'),
+
         body: SingleChildScrollView(
           child: Column(
             children: [
@@ -84,7 +89,17 @@ class _MyAppState extends State<MyApp> {
             ],
           ),
         ),
-        bottomNavigationBar: Text("Bottom Navigation"),
+
+        // ── Use BottomNavBar component ──
+        // We pass the current index and update it with setState when user taps
+        bottomNavigationBar: BottomNavBar(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+        ),
       ),
     );
   }

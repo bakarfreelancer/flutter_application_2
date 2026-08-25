@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_2/components/bottom_nav_bar.dart'; // import component
+import 'package:flutter_application_2/components/top_header.dart';     // import component
 
 // Create Simple My App Widget
 class Profile extends StatefulWidget {
@@ -11,22 +13,34 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
-  String inputName = '';
-  final TextEditingController nameInputController = TextEditingController();
+  // Tracks which bottom nav tab is selected
+  int _currentIndex = 3; // Start on Profile tab (index 3)
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'My App',
       home: Scaffold(
-        appBar: AppBar(
-          title: Text("Personal App"),
-          backgroundColor: Colors.orangeAccent,
-          foregroundColor: Colors.white,
-        ),
+        // ── Same TopHeader component, different title ──
+        appBar: TopHeader(title: 'My Profile'),
+
         body: SingleChildScrollView(
-          child: Column(children: [Text('Welcome ${widget.personName}.')]),
+          child: Column(
+            children: [
+              Text('Welcome ${widget.personName}.'),
+            ],
+          ),
         ),
-        bottomNavigationBar: Text("Bottom Navigation"),
+
+        // ── Same BottomNavBar component ──
+        bottomNavigationBar: BottomNavBar(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+        ),
       ),
     );
   }

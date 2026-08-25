@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 05 – Reusable Components in Flutter</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #fff;
+      padding: 40px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    .page-header {
+      background: #FF9800;
+      color: white;
+      padding: 28px 32px;
+      border-radius: 8px;
+      margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    /* ── Section headings ── */
+    h2 {
+      font-size: 18px;
+      color: #e65100;
+      border-left: 4px solid #FF9800;
+      padding-left: 10px;
+      margin: 28px 0 12px;
+    }
+    h3 {
+      font-size: 15px;
+      color: #333;
+      margin: 18px 0 8px;
+      font-weight: 600;
+    }
+
+    p { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    /* ── Objective box ── */
+    .objectives {
+      background: #fff8e1;
+      border: 1px solid #FF9800;
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+    }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    /* ── Code blocks ── */
+    pre {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 6px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+
+    /* ── Info / tip boxes ── */
+    .tip {
+      background: #e3f2fd;
+      border-left: 4px solid #1976D2;
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+      margin: 12px 0;
+      font-size: 13px;
+    }
+    .tip strong { color: #1976D2; }
+
+    /* ── Diagram ── */
+    .diagram {
+      background: #f9f9f9;
+      border: 1px dashed #ccc;
+      border-radius: 6px;
+      padding: 16px;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 2;
+      margin: 12px 0;
+      text-align: center;
+      color: #444;
+    }
+
+    /* ── File path badge ── */
+    .filepath {
+      display: inline-block;
+      background: #333;
+      color: #fff;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+
+    /* ── Summary table ── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 13px;
+    }
+    th {
+      background: #FF9800;
+      color: white;
+      padding: 8px 12px;
+      text-align: left;
+    }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    /* ── Print ── */
+    @media print {
+      body { padding: 20px; }
+      pre { font-size: 11px; }
+      .page-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      th            { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════
+     HEADER
+     ══════════════════════════════════ -->
+<div class="page-header">
+  <div class="course">BS — Mobile Application Development &nbsp;|&nbsp; Flutter</div>
+  <h1>Lecture 05 &nbsp;–&nbsp; Reusable Components</h1>
+  <div class="meta">
+    Topics: Creating widgets in a separate file &nbsp;·&nbsp;
+    TopHeader &nbsp;·&nbsp; BottomNavBar &nbsp;·&nbsp;
+    Importing &amp; using components in screens
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════
+     OBJECTIVES
+     ══════════════════════════════════ -->
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ol>
+    <li>Understand what a <em>reusable component</em> is and why we create them.</li>
+    <li>Create a <strong>TopHeader</strong> component in its own Dart file.</li>
+    <li>Create a <strong>BottomNavBar</strong> component in its own Dart file.</li>
+    <li>Import a component and use it in a screen.</li>
+    <li>Pass data into a component using <strong>parameters (constructor arguments)</strong>.</li>
+  </ol>
+</div>
+
+
+<!-- ══════════════════════════════════
+     SECTION 1
+     ══════════════════════════════════ -->
+<h2>1. What is a Reusable Component?</h2>
+
+<p>
+  In Flutter, every piece of UI is a <strong>widget</strong>. A <em>component</em> is a widget
+  we write <strong>once</strong> in its own file and then <strong>import and use</strong> in
+  as many screens as we want — without rewriting the code.
+</p>
+
+<div class="diagram">
+  ┌─────────────────────────────────┐<br>
+  │  <strong>TopHeader</strong> (component file)       │<br>
+  └──────────┬──────────────────────┘<br>
+             │ import &amp; use<br>
+  ┌──────────▼──────┐  ┌──────────────────┐<br>
+  │  home.dart      │  │  profile.dart    │<br>
+  └─────────────────┘  └──────────────────┘
+</div>
+
+<p><strong>Why use components?</strong></p>
+<ul>
+  <li><strong>Write once, use everywhere</strong> — a single change fixes all screens at once.</li>
+  <li><strong>Clean files</strong> — each screen stays small and easy to read.</li>
+  <li><strong>Customizable</strong> — pass different values (like <em>title</em>) to the same component.</li>
+</ul>
+
+<div class="tip">
+  <strong>Our project structure:</strong> All reusable components go inside
+  <code>lib/components/</code> — this keeps them easy to find and import.
+</div>
+
+
+<!-- ══════════════════════════════════
+     SECTION 2
+     ══════════════════════════════════ -->
+<h2>2. Project Structure for This Lecture</h2>
+
+<div class="diagram">
+  lib/<br>
+  ├── components/                   <span style="color:#e65100">← components folder</span><br>
+  │   ├── top_header.dart           <span style="color:#e65100">← TopHeader component   (NEW)</span><br>
+  │   └── bottom_nav_bar.dart       <span style="color:#e65100">← BottomNavBar component (NEW)</span><br>
+  └── screens/<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── home.dart              <span style="color:#1976D2">← imports both components (UPDATED)</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── profile.dart           <span style="color:#1976D2">← imports both components (UPDATED)</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;└── splash.dart
+</div>
+
+
+<!-- ══════════════════════════════════
+     SECTION 3
+     ══════════════════════════════════ -->
+<h2>3. TopHeader Component</h2>
+
+<h3>What does it look like?</h3>
+
+<div class="diagram">
+  ┌─────────────────────────────────────────┐<br>
+  │ &nbsp; ☰ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Personal App &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; 🔔 &nbsp; │<br>
+  └─────────────────────────────────────────┘<br>
+  <small>Orange background · white icons and text</small>
+</div>
+
+<p>Three widgets arranged in a <code>Row</code>:</p>
+<table>
+  <tr><th>Position</th><th>Widget</th><th>Widget Used</th></tr>
+  <tr><td>Left</td><td>Menu icon</td><td><code>IconButton(Icons.menu)</code></td></tr>
+  <tr><td>Center</td><td>Title text</td><td><code>Text(title)</code> — from parameter</td></tr>
+  <tr><td>Right</td><td>Notification icon</td><td><code>IconButton(Icons.notifications_outlined)</code></td></tr>
+</table>
+
+<h3>Key Concept — <code>implements PreferredSizeWidget</code></h3>
+<p>
+  Flutter's <code>Scaffold</code> expects its <code>appBar</code> property to know its own height.
+  By writing <code>implements PreferredSizeWidget</code> and adding the
+  <code>preferredSize</code> getter, we tell Scaffold: <em>"this widget is 56px tall"</em>.
+</p>
+
+<span class="filepath">lib/components/top_header.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter/material.dart'</span>;
+
+<span class="cm">// Reusable top header — write once, use in any screen</span>
+<span class="kw">class</span> <span class="cl">TopHeader</span> <span class="kw">extends</span> <span class="cl">StatelessWidget</span> <span class="kw">implements</span> <span class="cl">PreferredSizeWidget</span> {
+
+  <span class="kw">final</span> <span class="cl">String</span> title; <span class="cm">// ← parameter: provided by the screen that uses this widget</span>
+
+  <span class="kw">const</span> <span class="cl">TopHeader</span>({<span class="kw">super</span>.key, <span class="kw">required</span> <span class="kw">this</span>.title});
+
+  <span class="cm">// Required by PreferredSizeWidget — Scaffold uses this to know AppBar height</span>
+  @override
+  <span class="cl">Size</span> <span class="kw">get</span> preferredSize =&gt; <span class="kw">const</span> <span class="cl">Size</span>.fromHeight(kToolbarHeight);
+
+  @override
+  <span class="cl">Widget</span> build(<span class="cl">BuildContext</span> context) {
+    <span class="kw">return</span> <span class="cl">Container</span>(
+      color: <span class="cl">Colors</span>.orangeAccent,
+      padding: <span class="kw">const</span> <span class="cl">EdgeInsets</span>.symmetric(horizontal: 8.0),
+      child: <span class="cl">SafeArea</span>(
+        child: <span class="cl">Row</span>(
+          mainAxisAlignment: <span class="cl">MainAxisAlignment</span>.spaceBetween,
+          children: [
+            <span class="cm">// Left icon</span>
+            <span class="cl">IconButton</span>(
+              icon: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.menu, color: <span class="cl">Colors</span>.white),
+              onPressed: () {},
+            ),
+
+            <span class="cm">// Center title — uses the 'title' parameter</span>
+            <span class="cl">Text</span>(
+              title,
+              style: <span class="kw">const</span> <span class="cl">TextStyle</span>(
+                color: <span class="cl">Colors</span>.white,
+                fontSize: 20,
+                fontWeight: <span class="cl">FontWeight</span>.bold,
+              ),
+            ),
+
+            <span class="cm">// Right icon</span>
+            <span class="cl">IconButton</span>(
+              icon: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.notifications_outlined, color: <span class="cl">Colors</span>.white),
+              onPressed: () {},
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+</pre>
+
+<div class="tip">
+  <strong>Notice <code>required this.title</code>:</strong> Anyone who uses <code>TopHeader</code>
+  <em>must</em> provide a title string. This is how we make one component work for different screens —
+  <code>TopHeader(title: 'Personal App')</code> on Home, <code>TopHeader(title: 'My Profile')</code>
+  on Profile.
+</div>
+
+
+<!-- ══════════════════════════════════
+     SECTION 4
+     ══════════════════════════════════ -->
+<h2>4. BottomNavBar Component</h2>
+
+<h3>What does it look like?</h3>
+
+<div class="diagram">
+  ┌──────────────────────────────────────────────┐<br>
+  │ &nbsp; 🏠 Home &nbsp; 🔍 Search &nbsp; 🛒 Cart &nbsp; 👤 Profile &nbsp; │<br>
+  └──────────────────────────────────────────────┘<br>
+  <small>Active tab = orange · inactive = grey</small>
+</div>
+
+<h3>Two Parameters</h3>
+<table>
+  <tr><th>Parameter</th><th>Type</th><th>Purpose</th></tr>
+  <tr><td><code>currentIndex</code></td><td><code>int</code></td><td>Which tab is highlighted (0=Home, 1=Search, 2=Cart, 3=Profile)</td></tr>
+  <tr><td><code>onTap</code></td><td><code>void Function(int)</code></td><td>Called when user taps a tab — the screen decides what to do</td></tr>
+</table>
+
+<span class="filepath">lib/components/bottom_nav_bar.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter/material.dart'</span>;
+
+<span class="kw">class</span> <span class="cl">BottomNavBar</span> <span class="kw">extends</span> <span class="cl">StatelessWidget</span> {
+  <span class="kw">final</span> <span class="kw">int</span> currentIndex;           <span class="cm">// which tab is active</span>
+  <span class="kw">final void</span> <span class="cl">Function</span>(<span class="kw">int</span>) onTap; <span class="cm">// what to do when tapped</span>
+
+  <span class="kw">const</span> <span class="cl">BottomNavBar</span>({
+    <span class="kw">super</span>.key,
+    <span class="kw">required this</span>.currentIndex,
+    <span class="kw">required this</span>.onTap,
+  });
+
+  @override
+  <span class="cl">Widget</span> build(<span class="cl">BuildContext</span> context) {
+    <span class="kw">return</span> <span class="cl">BottomNavigationBar</span>(
+      currentIndex: currentIndex,
+      onTap: onTap,
+      selectedItemColor:   <span class="cl">Colors</span>.orangeAccent, <span class="cm">// active tab color</span>
+      unselectedItemColor: <span class="cl">Colors</span>.grey,
+      backgroundColor:     <span class="cl">Colors</span>.white,
+      type: <span class="cl">BottomNavigationBarType</span>.fixed, <span class="cm">// always show all labels</span>
+      items: <span class="kw">const</span> [
+        <span class="cl">BottomNavigationBarItem</span>(
+          icon: <span class="cl">Icon</span>(<span class="cl">Icons</span>.home_outlined),
+          activeIcon: <span class="cl">Icon</span>(<span class="cl">Icons</span>.home),
+          label: <span class="st">'Home'</span>,
+        ),
+        <span class="cl">BottomNavigationBarItem</span>(
+          icon: <span class="cl">Icon</span>(<span class="cl">Icons</span>.search_outlined),
+          activeIcon: <span class="cl">Icon</span>(<span class="cl">Icons</span>.search),
+          label: <span class="st">'Search'</span>,
+        ),
+        <span class="cl">BottomNavigationBarItem</span>(
+          icon: <span class="cl">Icon</span>(<span class="cl">Icons</span>.shopping_cart_outlined),
+          activeIcon: <span class="cl">Icon</span>(<span class="cl">Icons</span>.shopping_cart),
+          label: <span class="st">'Cart'</span>,
+        ),
+        <span class="cl">BottomNavigationBarItem</span>(
+          icon: <span class="cl">Icon</span>(<span class="cl">Icons</span>.person_outlined),
+          activeIcon: <span class="cl">Icon</span>(<span class="cl">Icons</span>.person),
+          label: <span class="st">'Profile'</span>,
+        ),
+      ],
+    );
+  }
+}
+</pre>
+
+<div class="tip">
+  <strong>Why is BottomNavBar a StatelessWidget?</strong>
+  Because it does <em>not</em> store state — it only receives <code>currentIndex</code> and calls
+  <code>onTap</code>. The <em>screen</em> owns the state. This pattern is called
+  <strong>"lifting state up"</strong>.
+</div>
+
+
+<!-- ══════════════════════════════════
+     SECTION 5
+     ══════════════════════════════════ -->
+<h2>5. Using Components in Screens</h2>
+
+<p>
+  To use a component we must <strong>import</strong> it, then place it in the
+  <code>Scaffold</code>. Because we track which tab is active, the screen must be
+  a <strong>StatefulWidget</strong>.
+</p>
+
+<span class="filepath">lib/screens/home.dart — key changes</span>
+<pre>
+<span class="cm">// Step 1: import the components</span>
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/components/top_header.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/components/bottom_nav_bar.dart'</span>;
+
+<span class="kw">class</span> <span class="cl">_MyAppState</span> <span class="kw">extends</span> <span class="cl">State</span>&lt;<span class="cl">MyApp</span>&gt; {
+
+  <span class="kw">int</span> _currentIndex = 0; <span class="cm">// Step 2: state variable for active tab</span>
+
+  @override
+  <span class="cl">Widget</span> build(<span class="cl">BuildContext</span> context) {
+    <span class="kw">return</span> <span class="cl">MaterialApp</span>(
+      home: <span class="cl">Scaffold</span>(
+
+        <span class="cm">// Step 3: use TopHeader as appBar, pass a title</span>
+        appBar: <span class="cl">TopHeader</span>(title: <span class="st">'Personal App'</span>),
+
+        body: <span class="cm">/* ... same as before ... */</span>,
+
+        <span class="cm">// Step 4: use BottomNavBar as bottomNavigationBar</span>
+        bottomNavigationBar: <span class="cl">BottomNavBar</span>(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index; <span class="cm">// rebuild with the tapped tab active</span>
+            });
+          },
+        ),
+      ),
+    );
+  }
+}
+</pre>
+
+<p>
+  On <strong>profile.dart</strong> we do the same — but pass a different title
+  and start with tab 3 active:
+</p>
+<pre>
+appBar: <span class="cl">TopHeader</span>(title: <span class="st">'My Profile'</span>),  <span class="cm">// different title, same component</span>
+
+<span class="kw">int</span> _currentIndex = 3;               <span class="cm">// Profile tab active by default</span>
+</pre>
+
+
+<!-- ══════════════════════════════════
+     SECTION 6
+     ══════════════════════════════════ -->
+<h2>6. How Import Works in Dart</h2>
+
+<p>
+  Every Dart file is its own <em>library</em>. To use a class from another file you must
+  <strong>import</strong> it using the <code>package:</code> path.
+</p>
+
+<pre>
+<span class="cm">// Format:  package:&lt;package_name&gt;/&lt;path from lib/ folder&gt;</span>
+
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/components/top_header.dart'</span>;
+<span class="cm">//              ↑ package name (from pubspec.yaml)  ↑ file path inside lib/</span>
+</pre>
+
+<table>
+  <tr><th>File</th><th>Import Statement</th></tr>
+  <tr>
+    <td>lib/components/top_header.dart</td>
+    <td><code>package:flutter_application_2/components/top_header.dart</code></td>
+  </tr>
+  <tr>
+    <td>lib/components/bottom_nav_bar.dart</td>
+    <td><code>package:flutter_application_2/components/bottom_nav_bar.dart</code></td>
+  </tr>
+</table>
+
+
+<!-- ══════════════════════════════════
+     SECTION 7
+     ══════════════════════════════════ -->
+<h2>7. State Flow — How Tab Selection Works</h2>
+
+<div class="diagram">
+  User taps <strong>"Cart"</strong> tab<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+  <code>onTap(2)</code> is called on <strong>BottomNavBar</strong><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+  <code>setState(() { _currentIndex = 2; })</code> runs in <strong>_MyAppState</strong><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+  Flutter rebuilds the screen<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+  <strong>BottomNavBar</strong> receives <code>currentIndex: 2</code> → Cart icon turns orange
+</div>
+
+
+<!-- ══════════════════════════════════
+     SECTION 8 – SUMMARY
+     ══════════════════════════════════ -->
+<h2>8. Summary</h2>
+
+<table>
+  <tr><th>Concept</th><th>What We Did</th></tr>
+  <tr><td>Reusable Component</td><td>Wrote widgets in <code>lib/components/</code> so any screen can use them</td></tr>
+  <tr><td>Parameter</td><td>Passed <code>title</code> to TopHeader so one widget works for all screens</td></tr>
+  <tr><td>PreferredSizeWidget</td><td>Implemented it so Scaffold accepts TopHeader as an <code>appBar</code></td></tr>
+  <tr><td>Callback (<code>onTap</code>)</td><td>BottomNavBar calls it; the parent screen decides what to do</td></tr>
+  <tr><td>Lifting State Up</td><td><code>_currentIndex</code> lives in the screen, not inside BottomNavBar</td></tr>
+  <tr><td>import</td><td>Used <code>package:flutter_application_2/...</code> to bring the component in</td></tr>
+</table>
+
+
+<!-- ══════════════════════════════════
+     SECTION 9 – PRACTICE
+     ══════════════════════════════════ -->
+<h2>9. Practice Tasks</h2>
+
+<ol>
+  <li>Change the <code>TopHeader</code> background to <code>Colors.teal</code> and run the app — both screens update automatically.</li>
+  <li>Add a 5th tab to <code>BottomNavBar</code>: "Wishlist" with <code>Icons.favorite_outline</code>.</li>
+  <li>Create a new screen <code>lib/screens/cart.dart</code> (just a <code>Scaffold</code> with a <code>Text('My Cart')</code>) and use both components in it.</li>
+  <li><strong>Challenge:</strong> Show the name of the active tab in a <code>Text</code> widget on the Home screen body based on <code>_currentIndex</code>.</li>
+</ol>
+
+<br>
+<hr style="border:none; border-top:1px solid #eee; margin: 24px 0;">
+<p style="text-align:center; color:#aaa; font-size:12px;">
+  BS Mobile Application Development &nbsp;·&nbsp; Lecture 05 &nbsp;·&nbsp; Flutter Reusable Components
+  <br>To save as PDF: open in browser → File → Print → Save as PDF
+</p>
+
+</body>
+</html>
