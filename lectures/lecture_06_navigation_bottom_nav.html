@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 06 – Navigation with Bottom Nav Bar</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #fff;
+      padding: 40px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .page-header {
+      background: #FF9800;
+      color: white;
+      padding: 28px 32px;
+      border-radius: 8px;
+      margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 {
+      font-size: 18px;
+      color: #e65100;
+      border-left: 4px solid #FF9800;
+      padding-left: 10px;
+      margin: 28px 0 12px;
+    }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+
+    p { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives {
+      background: #fff8e1;
+      border: 1px solid #FF9800;
+      border-radius: 6px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+    }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e;
+      color: #cdd6f4;
+      border-radius: 6px;
+      padding: 16px 20px;
+      overflow-x: auto;
+      margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+
+    .tip {
+      background: #e3f2fd;
+      border-left: 4px solid #1976D2;
+      padding: 10px 14px;
+      border-radius: 0 6px 6px 0;
+      margin: 12px 0;
+      font-size: 13px;
+    }
+    .tip strong { color: #1976D2; }
+
+    .diagram {
+      background: #f9f9f9;
+      border: 1px dashed #ccc;
+      border-radius: 6px;
+      padding: 16px;
+      font-family: monospace;
+      font-size: 13px;
+      line-height: 2;
+      margin: 12px 0;
+      text-align: center;
+      color: #444;
+    }
+
+    .filepath {
+      display: inline-block;
+      background: #333;
+      color: #fff;
+      font-family: monospace;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0 20px;
+      font-size: 13px;
+    }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    @media print {
+      body { padding: 20px; }
+      pre { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="course">BS — Mobile Application Development &nbsp;|&nbsp; Flutter</div>
+  <h1>Lecture 06 &nbsp;–&nbsp; Navigation with Bottom Nav Bar</h1>
+  <div class="meta">
+    Topics: IndexedStack &nbsp;·&nbsp; Navigation shell &nbsp;·&nbsp;
+    Dynamic AppBar title &nbsp;·&nbsp; Tab screens
+  </div>
+</div>
+
+
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ol>
+    <li>Understand the difference between <em>navigation</em> and <em>tab switching</em>.</li>
+    <li>Use <strong>IndexedStack</strong> to switch between tab screens.</li>
+    <li>Build a navigation <strong>shell screen</strong> that wraps all tabs.</li>
+    <li>Change the <strong>AppBar title</strong> automatically based on the active tab.</li>
+    <li>Create simple, separate screens for each tab.</li>
+  </ol>
+</div>
+
+
+<!-- ══════ SECTION 1 ══════ -->
+<h2>1. Two Types of Navigation in Flutter</h2>
+
+<table>
+  <tr><th>Type</th><th>How it works</th><th>Example</th></tr>
+  <tr>
+    <td><strong>Stack navigation</strong></td>
+    <td>Push a new screen on top, pop to go back</td>
+    <td>Tap a product → open Product Detail</td>
+  </tr>
+  <tr>
+    <td><strong>Tab navigation</strong></td>
+    <td>Switch between sibling screens — no "back"</td>
+    <td>Tap Home / Search / Cart / Profile in nav bar</td>
+  </tr>
+</table>
+
+<p>
+  In the previous lecture we learned <em>stack navigation</em> (<code>Navigator.push</code>).
+  This lecture is about <em>tab navigation</em> using the
+  <code>BottomNavBar</code> component we already built.
+</p>
+
+
+<!-- ══════ SECTION 2 ══════ -->
+<h2>2. The Navigation Shell Pattern</h2>
+
+<p>
+  Instead of every screen managing its own <code>AppBar</code> and <code>BottomNavBar</code>,
+  we create one <strong>shell screen</strong> that holds:
+</p>
+<ul>
+  <li>The <strong>AppBar</strong> (title changes per tab)</li>
+  <li>The <strong>body</strong> — shows whichever tab screen is active</li>
+  <li>The <strong>BottomNavBar</strong></li>
+</ul>
+
+<div class="diagram">
+  ┌─────────────────────────────────────────┐<br>
+  │  TopHeader — title changes per tab      │  ← AppBar<br>
+  ├─────────────────────────────────────────┤<br>
+  │                                         │<br>
+  │   HomeContent / SearchScreen /          │  ← body (IndexedStack)<br>
+  │   CartScreen  / ProfileScreen           │<br>
+  │                                         │<br>
+  ├─────────────────────────────────────────┤<br>
+  │  🏠 Home  🔍 Search  🛒 Cart  👤 Profile │  ← BottomNavBar<br>
+  └─────────────────────────────────────────┘<br>
+  <small>All of this is ONE Scaffold inside MyApp (the shell)</small>
+</div>
+
+
+<!-- ══════ SECTION 3 ══════ -->
+<h2>3. Project Structure After This Lecture</h2>
+
+<div class="diagram">
+  lib/<br>
+  ├── components/<br>
+  │   ├── top_header.dart<br>
+  │   └── bottom_nav_bar.dart<br>
+  └── screens/<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── home.dart           <span style="color:#e65100">← navigation shell + home tab content</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── search_screen.dart  <span style="color:#e65100">← simple tab screen (NEW)</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── cart_screen.dart    <span style="color:#e65100">← simple tab screen (NEW)</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── profile.dart        <span style="color:#e65100">← simple tab screen (UPDATED)</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;└── splash.dart
+</div>
+
+
+<!-- ══════ SECTION 4 ══════ -->
+<h2>4. The Simple Tab Screens</h2>
+
+<p>
+  Each tab screen is just a <strong>StatelessWidget</strong> that returns a
+  <code>Center</code> with a <code>Text</code>. No Scaffold, no AppBar —
+  those are handled by the shell.
+</p>
+
+<span class="filepath">lib/screens/search_screen.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter/material.dart'</span>;
+
+<span class="kw">class</span> <span class="cl">SearchScreen</span> <span class="kw">extends</span> <span class="cl">StatelessWidget</span> {
+  <span class="kw">const</span> <span class="cl">SearchScreen</span>({<span class="kw">super</span>.key});
+
+  @override
+  <span class="cl">Widget</span> build(<span class="cl">BuildContext</span> context) {
+    <span class="kw">return const</span> <span class="cl">Center</span>(
+      child: <span class="cl">Text</span>(<span class="st">'Search Screen'</span>, style: <span class="cl">TextStyle</span>(fontSize: <span class="num">24</span>)),
+    );
+  }
+}
+</pre>
+
+<p><code>cart_screen.dart</code> and <code>profile.dart</code> follow the same pattern — just change the class name and text.</p>
+
+
+<!-- ══════ SECTION 5 ══════ -->
+<h2>5. The Navigation Shell — home.dart</h2>
+
+<p>This is the most important file. It does three things:</p>
+<ol>
+  <li>Holds a list of <strong>titles</strong> — one per tab</li>
+  <li>Holds a list of <strong>screens</strong> — one per tab</li>
+  <li>Uses <strong>IndexedStack</strong> to show the active screen</li>
+</ol>
+
+<span class="filepath">lib/screens/home.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter/material.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/components/bottom_nav_bar.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/components/top_header.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/screens/cart_screen.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/screens/profile.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/screens/search_screen.dart'</span>;
+
+<span class="kw">class</span> <span class="cl">MyApp</span> <span class="kw">extends</span> <span class="cl">StatefulWidget</span> {
+  <span class="kw">const</span> <span class="cl">MyApp</span>({<span class="kw">super</span>.key});
+
+  @override
+  <span class="cl">State</span>&lt;<span class="cl">MyApp</span>&gt; createState() =&gt; <span class="cl">_MyAppState</span>();
+}
+
+<span class="kw">class</span> <span class="cl">_MyAppState</span> <span class="kw">extends</span> <span class="cl">State</span>&lt;<span class="cl">MyApp</span>&gt; {
+
+  <span class="kw">int</span> _currentIndex = <span class="num">0</span>; <span class="cm">// active tab index</span>
+
+  <span class="cm">// One title per tab — index must match BottomNavBar items</span>
+  <span class="kw">final</span> <span class="cl">List</span>&lt;<span class="cl">String</span>&gt; _titles = [<span class="st">'Home'</span>, <span class="st">'Search'</span>, <span class="st">'Cart'</span>, <span class="st">'Profile'</span>];
+
+  <span class="cm">// One screen per tab</span>
+  <span class="kw">final</span> <span class="cl">List</span>&lt;<span class="cl">Widget</span>&gt; _screens = [
+    <span class="kw">const</span> <span class="cl">_HomeContent</span>(),
+    <span class="kw">const</span> <span class="cl">SearchScreen</span>(),
+    <span class="kw">const</span> <span class="cl">CartScreen</span>(),
+    <span class="kw">const</span> <span class="cl">ProfileScreen</span>(),
+  ];
+
+  @override
+  <span class="cl">Widget</span> build(<span class="cl">BuildContext</span> context) {
+    <span class="kw">return</span> <span class="cl">MaterialApp</span>(
+      home: <span class="cl">Scaffold</span>(
+
+        <span class="cm">// Title updates automatically: _titles[0]='Home', _titles[1]='Search' ...</span>
+        appBar: <span class="cl">TopHeader</span>(title: _titles[_currentIndex]),
+
+        <span class="cm">// IndexedStack: shows only the child at 'index'</span>
+        <span class="cm">// All children stay alive in memory (no rebuild on tab switch)</span>
+        body: <span class="cl">IndexedStack</span>(
+          index: _currentIndex,
+          children: _screens,
+        ),
+
+        bottomNavigationBar: <span class="cl">BottomNavBar</span>(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+        ),
+      ),
+    );
+  }
+}
+</pre>
+
+
+<!-- ══════ SECTION 6 ══════ -->
+<h2>6. IndexedStack — Deep Dive</h2>
+
+<h3>What is IndexedStack?</h3>
+<p>
+  <code>IndexedStack</code> is a Flutter widget that takes a <strong>list of children</strong>
+  and an <strong>index</strong> number. It shows only the child at that index position,
+  and hides all the others — but it <em>does not destroy them</em>.
+  Think of it like a stack of papers on a desk: only the top paper is visible,
+  but all the others are still there underneath.
+</p>
+
+<h3>Basic Syntax</h3>
+<pre>
+<span class="cl">IndexedStack</span>(
+  index: <span class="num">2</span>,             <span class="cm">// show child at position 2 (CartScreen)</span>
+  children: [
+    <span class="cl">HomeContent</span>(),    <span class="cm">// index 0 — hidden</span>
+    <span class="cl">SearchScreen</span>(),   <span class="cm">// index 1 — hidden</span>
+    <span class="cl">CartScreen</span>(),     <span class="cm">// index 2 — VISIBLE</span>
+    <span class="cl">ProfileScreen</span>(),  <span class="cm">// index 3 — hidden</span>
+  ],
+)
+</pre>
+
+<h3>How it looks internally</h3>
+<div class="diagram">
+  index = 2 → CartScreen is on top (visible)<br><br>
+  ┌─────────────────────────────────┐<br>
+  │  CartScreen          ← VISIBLE  │<br>
+  │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  │<br>
+  │  SearchScreen        ← hidden   │<br>
+  │ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─  │<br>
+  │  HomeContent         ← hidden   │<br>
+  └─────────────────────────────────┘<br>
+  <small>All screens exist in memory — only visibility changes</small>
+</div>
+
+<h3>Which screen shows at which index?</h3>
+<table>
+  <tr><th>_currentIndex</th><th>Visible screen</th><th>AppBar title</th></tr>
+  <tr><td>0</td><td>_HomeContent</td><td>Home</td></tr>
+  <tr><td>1</td><td>SearchScreen</td><td>Search</td></tr>
+  <tr><td>2</td><td>CartScreen</td><td>Cart</td></tr>
+  <tr><td>3</td><td>ProfileScreen</td><td>Profile</td></tr>
+</table>
+
+<h3>Why IndexedStack and not if/else?</h3>
+<p>
+  You <em>could</em> use an <code>if/else</code> to swap screens, but every tab switch
+  would <strong>destroy and recreate</strong> the screen widget. This means:
+</p>
+<ul>
+  <li>Any text typed in a form gets wiped when you switch tabs</li>
+  <li>A video resets to the beginning</li>
+  <li>A scroll position jumps back to the top</li>
+</ul>
+<p>
+  With <code>IndexedStack</code>, the screens are <strong>kept alive in memory</strong>.
+  Switch from Home to Search and back — the form still has your typed text.
+</p>
+
+<pre>
+<span class="cm">// ❌ if/else — screen is destroyed and rebuilt every time you switch tabs</span>
+body: _currentIndex == <span class="num">0</span> ? <span class="cl">HomeContent</span>() : <span class="cl">SearchScreen</span>(),
+
+<span class="cm">// ✅ IndexedStack — screen stays alive, only visibility changes</span>
+body: <span class="cl">IndexedStack</span>(
+  index: _currentIndex,
+  children: [<span class="cl">HomeContent</span>(), <span class="cl">SearchScreen</span>(), ...],
+),
+</pre>
+
+<div class="tip">
+  <strong>IndexedStack vs Navigator.push:</strong><br>
+  <code>Navigator.push</code> — stacks a new screen on top. User can press the back button to return.<br>
+  <code>IndexedStack</code> — swaps between sibling screens. There is no back button between tabs.
+  Use <code>Navigator.push</code> for detail screens; use <code>IndexedStack</code> for tab navigation.
+</div>
+
+
+<!-- ══════ SECTION 7 ══════ -->
+<h2>7. Full Flow Diagram</h2>
+
+<div class="diagram">
+  main.dart → SplashScreen (2 sec)<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓ Navigator.pushReplacement<br>
+  <strong>MyApp</strong> (navigation shell)<br>
+  &nbsp;&nbsp;├── AppBar: TopHeader(title: _titles[_currentIndex])<br>
+  &nbsp;&nbsp;├── Body: IndexedStack<br>
+  &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;├── [0] _HomeContent<br>
+  &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;├── [1] SearchScreen<br>
+  &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;├── [2] CartScreen<br>
+  &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;&nbsp;└── [3] ProfileScreen<br>
+  &nbsp;&nbsp;└── BottomNavBar → onTap → setState → _currentIndex changes
+</div>
+
+
+<!-- ══════ SECTION 8 ══════ -->
+<h2>8. Summary</h2>
+
+<table>
+  <tr><th>Concept</th><th>What We Did</th></tr>
+  <tr><td>Navigation shell</td><td>One <code>Scaffold</code> in MyApp manages AppBar + body + BottomNavBar</td></tr>
+  <tr><td>IndexedStack</td><td>Shows one screen at a time based on <code>_currentIndex</code></td></tr>
+  <tr><td>Dynamic title</td><td><code>_titles[_currentIndex]</code> passed to TopHeader automatically</td></tr>
+  <tr><td>Tab screens</td><td>Simple StatelessWidgets — no Scaffold, just content</td></tr>
+  <tr><td>setState</td><td>Changing <code>_currentIndex</code> rebuilds the shell, swapping the visible screen</td></tr>
+</table>
+
+
+<!-- ══════ SECTION 9 ══════ -->
+<h2>9. Practice Tasks</h2>
+
+<ol>
+  <li>Add an icon next to the title in <code>TopHeader</code> that changes per tab (hint: pass an <code>IconData</code> parameter).</li>
+  <li>Add content to <code>CartScreen</code> — show a list of 3 hard-coded item names using a <code>Column</code>.</li>
+  <li>Add content to <code>ProfileScreen</code> — show a profile avatar (<code>CircleAvatar</code>) and a name.</li>
+  <li><strong>Challenge:</strong> Replace <code>IndexedStack</code> with a simple <code>if/else</code> in the body — observe the difference (screens rebuild on every tab switch).</li>
+</ol>
+
+<br>
+<hr style="border:none; border-top:1px solid #eee; margin: 24px 0;">
+<p style="text-align:center; color:#aaa; font-size:12px;">
+  BS Mobile Application Development &nbsp;·&nbsp; Lecture 06 &nbsp;·&nbsp; Navigation with Bottom Nav Bar
+  <br>To save as PDF: open in browser → File → Print → Save as PDF
+</p>
+
+</body>
+</html>
