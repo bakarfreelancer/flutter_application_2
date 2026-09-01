@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 08 – Lists & ListView</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #fff;
+      padding: 40px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800;
+      color: white;
+      padding: 28px 32px;
+      border-radius: 8px;
+      margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+
+    .tip  { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+    .warn { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2; margin: 12px 0; text-align: center; color: #444; }
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    @media print {
+      body { padding: 20px; }
+      pre { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="course">BS — Mobile Application Development &nbsp;|&nbsp; Flutter</div>
+  <h1>Lecture 08 &nbsp;–&nbsp; Lists &amp; ListView</h1>
+  <div class="meta">
+    Topics: Dart List &nbsp;·&nbsp; ListView &nbsp;·&nbsp; ListView.builder &nbsp;·&nbsp;
+    ListTile &nbsp;·&nbsp; Card &nbsp;·&nbsp; Data model class &nbsp;·&nbsp; Dynamic add &amp; remove
+  </div>
+</div>
+
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ol>
+    <li>Work with Dart <strong>List</strong> — add, remove, and iterate items.</li>
+    <li>Understand the difference between <strong>ListView</strong> and <strong>ListView.builder</strong>.</li>
+    <li>Create a simple <strong>data model class</strong> to represent list items.</li>
+    <li>Use <strong>ListTile</strong> and <strong>Card</strong> to build clean list rows.</li>
+    <li>Add and remove items from a list using <strong>setState</strong>.</li>
+    <li>Calculate and display a <strong>total</strong> from list data.</li>
+  </ol>
+</div>
+
+
+<!-- ══════ SECTION 1 ══════ -->
+<h2>1. Dart List — Quick Recap</h2>
+
+<p>
+  A <strong>List</strong> in Dart is an ordered collection of items.
+  You can add, remove, and loop through items.
+</p>
+
+<pre>
+<span class="cm">// Create a list of strings</span>
+<span class="cl">List</span>&lt;<span class="cl">String</span>&gt; fruits = [<span class="st">'Apple'</span>, <span class="st">'Banana'</span>, <span class="st">'Mango'</span>];
+
+<span class="cm">// Access by index (starts at 0)</span>
+fruits[<span class="num">0</span>]; <span class="cm">// 'Apple'</span>
+
+<span class="cm">// Add an item</span>
+fruits.add(<span class="st">'Orange'</span>);
+
+<span class="cm">// Remove by index</span>
+fruits.removeAt(<span class="num">1</span>); <span class="cm">// removes 'Banana'</span>
+
+<span class="cm">// Number of items</span>
+fruits.length; <span class="cm">// 3</span>
+
+<span class="cm">// Loop through items</span>
+<span class="kw">for</span> (<span class="kw">final</span> fruit <span class="kw">in</span> fruits) {
+  print(fruit);
+}
+</pre>
+
+<div class="tip">
+  <strong>Type safety:</strong> <code>List&lt;String&gt;</code> means the list can only hold strings.
+  <code>List&lt;CartItem&gt;</code> means it can only hold <code>CartItem</code> objects.
+  This prevents bugs at compile time.
+</div>
+
+
+<!-- ══════ SECTION 2 ══════ -->
+<h2>2. ListView vs ListView.builder</h2>
+
+<table>
+  <tr><th></th><th>ListView</th><th>ListView.builder</th></tr>
+  <tr><td><strong>How items are defined</strong></td><td>Listed manually inside <code>children: []</code></td><td>Built one at a time by a function</td></tr>
+  <tr><td><strong>Best for</strong></td><td>Small, fixed lists (3–10 items)</td><td>Any size list, especially dynamic ones</td></tr>
+  <tr><td><strong>Performance</strong></td><td>Builds all items at once</td><td>Builds only visible items (lazy)</td></tr>
+  <tr><td><strong>List data needed?</strong></td><td>No — items written in code directly</td><td>Yes — reads from a Dart List</td></tr>
+</table>
+
+<h3>ListView — fixed items written manually</h3>
+<pre>
+<span class="cl">ListView</span>(
+  children: [
+    <span class="cl">ListTile</span>(title: <span class="cl">Text</span>(<span class="st">'Flutter'</span>)),
+    <span class="cl">ListTile</span>(title: <span class="cl">Text</span>(<span class="st">'Dart'</span>)),
+    <span class="cl">ListTile</span>(title: <span class="cl">Text</span>(<span class="st">'Android'</span>)),
+  ],
+)
+</pre>
+
+<h3>ListView.builder — built from a Dart list</h3>
+<pre>
+<span class="cl">ListView</span>.builder(
+  itemCount: fruits.length,           <span class="cm">// how many items</span>
+  itemBuilder: (context, index) {     <span class="cm">// called once per item</span>
+    <span class="kw">return</span> <span class="cl">ListTile</span>(
+      title: <span class="cl">Text</span>(fruits[index]),      <span class="cm">// use index to get the item</span>
+    );
+  },
+)
+</pre>
+
+<div class="tip">
+  <strong>Rule of thumb:</strong> If the number of items can change at runtime (add/remove),
+  always use <code>ListView.builder</code>. It works with <code>setState</code> seamlessly.
+</div>
+
+
+<!-- ══════ SECTION 3 ══════ -->
+<h2>3. Data Model Class</h2>
+
+<p>
+  Instead of storing data in separate lists (one for names, one for prices),
+  we group related data into a <strong>model class</strong>. This makes the code
+  cleaner and easier to read.
+</p>
+
+<pre>
+<span class="cm">// ❌ Without a model — messy, easy to get indices wrong</span>
+<span class="cl">List</span>&lt;<span class="cl">String</span>&gt; names  = [<span class="st">'Flutter Book'</span>, <span class="st">'Mouse'</span>];
+<span class="cl">List</span>&lt;<span class="kw">double</span>&gt; prices = [<span class="num">1200</span>, <span class="num">850</span>];
+
+<span class="cm">// ✅ With a model — clean, data grouped together</span>
+<span class="kw">class</span> <span class="cl">CartItem</span> {
+  <span class="kw">final</span> <span class="cl">String</span> name;
+  <span class="kw">final</span> <span class="kw">double</span> price;
+
+  <span class="cl">CartItem</span>({<span class="kw">required this</span>.name, <span class="kw">required this</span>.price});
+}
+
+<span class="cl">List</span>&lt;<span class="cl">CartItem</span>&gt; items = [
+  <span class="cl">CartItem</span>(name: <span class="st">'Flutter Book'</span>, price: <span class="num">1200</span>),
+  <span class="cl">CartItem</span>(name: <span class="st">'Mouse'</span>,        price: <span class="num">850</span>),
+];
+</pre>
+
+
+<!-- ══════ SECTION 4 ══════ -->
+<h2>4. ListTile and Card</h2>
+
+<p>
+  Flutter provides two widgets specifically designed for list rows:
+</p>
+
+<table>
+  <tr><th>Widget</th><th>Purpose</th><th>Common Properties</th></tr>
+  <tr><td><code>ListTile</code></td><td>A standard list row with slots for icon, title, subtitle, and trailing widget</td><td><code>leading</code>, <code>title</code>, <code>subtitle</code>, <code>trailing</code></td></tr>
+  <tr><td><code>Card</code></td><td>Wraps a widget in a raised, rounded container</td><td><code>child</code>, <code>elevation</code>, <code>margin</code></td></tr>
+</table>
+
+<div class="diagram">
+  ┌────────────────────────────────────────────────┐  ← Card<br>
+  │ [leading] &nbsp; title &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; [trailing] │  ← ListTile<br>
+  │ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; subtitle &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; │<br>
+  └────────────────────────────────────────────────┘
+</div>
+
+<pre>
+<span class="cl">Card</span>(
+  child: <span class="cl">ListTile</span>(
+    leading: <span class="cl">CircleAvatar</span>(child: <span class="cl">Text</span>(<span class="st">'1'</span>)),   <span class="cm">// left</span>
+    title: <span class="cl">Text</span>(<span class="st">'Flutter Book'</span>),                <span class="cm">// main text</span>
+    subtitle: <span class="cl">Text</span>(<span class="st">'Rs. 1200'</span>),                 <span class="cm">// secondary text</span>
+    trailing: <span class="cl">Icon</span>(<span class="cl">Icons</span>.delete_outline),        <span class="cm">// right</span>
+  ),
+)
+</pre>
+
+
+<!-- ══════ SECTION 5 ══════ -->
+<h2>5. SearchScreen — Basic ListView</h2>
+
+<p>
+  The Search screen shows a fixed list of technology topics using a plain <code>ListView</code>.
+  Each item is built by mapping the string list to a <code>Card + ListTile</code>.
+</p>
+
+<span class="filepath">lib/screens/search_screen.dart</span>
+<pre>
+<span class="kw">class</span> <span class="cl">SearchScreen</span> <span class="kw">extends</span> <span class="cl">StatelessWidget</span> {
+  <span class="kw">const</span> <span class="cl">SearchScreen</span>({<span class="kw">super</span>.key});
+
+  <span class="kw">static const</span> <span class="cl">List</span>&lt;<span class="cl">String</span>&gt; _items = [
+    <span class="st">'Flutter'</span>, <span class="st">'Dart'</span>, <span class="st">'Android'</span>, <span class="st">'iOS'</span>,
+    <span class="st">'React Native'</span>, <span class="st">'Kotlin'</span>, <span class="st">'Swift'</span>, <span class="st">'Firebase'</span>,
+  ];
+
+  @override
+  <span class="cl">Widget</span> build(<span class="cl">BuildContext</span> context) {
+    <span class="kw">return</span> <span class="cl">ListView</span>(
+      padding: <span class="kw">const</span> <span class="cl">EdgeInsets</span>.all(<span class="num">12</span>),
+      <span class="cm">// .map() converts each string to a Card widget</span>
+      <span class="cm">// .toList() converts the result back to a List&lt;Widget&gt;</span>
+      children: _items.map((item) {
+        <span class="kw">return</span> <span class="cl">Card</span>(
+          child: <span class="cl">ListTile</span>(
+            leading: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.search, color: <span class="cl">Colors</span>.orangeAccent),
+            title: <span class="cl">Text</span>(item),
+          ),
+        );
+      }).toList(),
+    );
+  }
+}
+</pre>
+
+
+<!-- ══════ SECTION 6 ══════ -->
+<h2>6. CartScreen — Dynamic ListView.builder</h2>
+
+<p>
+  The Cart screen is more advanced. The list changes at runtime — items can be
+  added and removed. We use <code>ListView.builder</code> and <code>setState</code>
+  to keep the UI in sync with the data.
+</p>
+
+<span class="filepath">lib/screens/cart_screen.dart</span>
+<pre>
+<span class="kw">class</span> <span class="cl">CartItem</span> {
+  <span class="kw">final</span> <span class="cl">String</span> name;
+  <span class="kw">final</span> <span class="kw">double</span> price;
+  <span class="cl">CartItem</span>({<span class="kw">required this</span>.name, <span class="kw">required this</span>.price});
+}
+
+<span class="kw">class</span> <span class="cl">_CartScreenState</span> <span class="kw">extends</span> <span class="cl">State</span>&lt;<span class="cl">CartScreen</span>&gt; {
+
+  <span class="cm">// The live list — changes here trigger a UI rebuild</span>
+  <span class="kw">final</span> <span class="cl">List</span>&lt;<span class="cl">CartItem</span>&gt; _cartItems = [
+    <span class="cl">CartItem</span>(name: <span class="st">'Flutter Book'</span>, price: <span class="num">1200</span>),
+    <span class="cl">CartItem</span>(name: <span class="st">'Wireless Mouse'</span>, price: <span class="num">850</span>),
+  ];
+
+  <span class="cm">// Add an item — setState tells Flutter to rebuild the ListView</span>
+  <span class="kw">void</span> _addItem() {
+    setState(() {
+      _cartItems.add(<span class="cl">CartItem</span>(name: <span class="st">'New Item'</span>, price: <span class="num">500</span>));
+    });
+  }
+
+  <span class="cm">// Remove an item by its index</span>
+  <span class="kw">void</span> _removeItem(<span class="kw">int</span> index) {
+    setState(() {
+      _cartItems.removeAt(index);
+    });
+  }
+
+  <span class="cm">// Calculated total — runs every time build() runs</span>
+  <span class="kw">double</span> <span class="kw">get</span> _total =&gt; _cartItems.fold(<span class="num">0</span>, (sum, item) =&gt; sum + item.price);
+
+  @override
+  <span class="cl">Widget</span> build(<span class="cl">BuildContext</span> context) {
+    <span class="kw">return</span> <span class="cl">Column</span>(
+      children: [
+        <span class="cl">Expanded</span>(
+          child: <span class="cl">ListView</span>.builder(
+            itemCount: _cartItems.length,       <span class="cm">// how many rows</span>
+            itemBuilder: (context, index) {     <span class="cm">// builds one row at a time</span>
+              <span class="kw">final</span> item = _cartItems[index];
+              <span class="kw">return</span> <span class="cl">Card</span>(
+                child: <span class="cl">ListTile</span>(
+                  leading: <span class="cl">CircleAvatar</span>(child: <span class="cl">Text</span>(<span class="st">'</span>${index + <span class="num">1</span>}<span class="st">'</span>)),
+                  title: <span class="cl">Text</span>(item.name),
+                  subtitle: <span class="cl">Text</span>(<span class="st">'Rs. </span>${item.price}<span class="st">'</span>),
+                  trailing: <span class="cl">IconButton</span>(
+                    icon: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.delete_outline, color: <span class="cl">Colors</span>.red),
+                    onPressed: () =&gt; _removeItem(index),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        <span class="cm">// Total + Add button at the bottom</span>
+        <span class="cl">Container</span>(
+          padding: <span class="kw">const</span> <span class="cl">EdgeInsets</span>.all(<span class="num">16</span>),
+          child: <span class="cl">Row</span>(
+            mainAxisAlignment: <span class="cl">MainAxisAlignment</span>.spaceBetween,
+            children: [
+              <span class="cl">Text</span>(<span class="st">'Total: Rs. </span>${_total}<span class="st">'</span>,
+                style: <span class="kw">const</span> <span class="cl">TextStyle</span>(fontWeight: <span class="cl">FontWeight</span>.bold)),
+              <span class="cl">ElevatedButton</span>.icon(
+                icon: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.add),
+                label: <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Add Item'</span>),
+                onPressed: _addItem,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+</pre>
+
+
+<!-- ══════ SECTION 7 ══════ -->
+<h2>7. How ListView.builder Works Internally</h2>
+
+<div class="diagram">
+  _cartItems = [ CartItem('Book', 1200), CartItem('Mouse', 850), CartItem('Cable', 350) ]<br><br>
+  ListView.builder called with itemCount: 3<br><br>
+  &nbsp;&nbsp;itemBuilder(context, 0) → builds Card for 'Book'<br>
+  &nbsp;&nbsp;itemBuilder(context, 1) → builds Card for 'Mouse'<br>
+  &nbsp;&nbsp;itemBuilder(context, 2) → builds Card for 'Cable'<br><br>
+  User taps delete on index 1 → _cartItems.removeAt(1) → setState()<br><br>
+  &nbsp;&nbsp;itemBuilder(context, 0) → builds Card for 'Book'  ✓<br>
+  &nbsp;&nbsp;itemBuilder(context, 1) → builds Card for 'Cable' ✓  ← index shifted up
+</div>
+
+<div class="tip">
+  <strong>Why Expanded?</strong> <code>ListView</code> tries to take infinite height.
+  Inside a <code>Column</code>, this causes an error. Wrapping it in
+  <code>Expanded</code> tells it: "take all remaining space in the Column" — problem solved.
+</div>
+
+
+<!-- ══════ SECTION 8 ══════ -->
+<h2>8. The fold() Method — Calculating a Total</h2>
+
+<p>
+  <code>fold()</code> is a Dart List method that reduces a list to a single value
+  by running a function on each item.
+</p>
+
+<pre>
+<span class="cm">// fold(startingValue, function)</span>
+<span class="cm">// 'sum' starts at 0, then adds each item's price one by one</span>
+<span class="kw">double</span> total = _cartItems.fold(<span class="num">0</span>, (sum, item) =&gt; sum + item.price);
+
+<span class="cm">// Equivalent to writing:</span>
+<span class="kw">double</span> total = <span class="num">0</span>;
+<span class="kw">for</span> (<span class="kw">final</span> item <span class="kw">in</span> _cartItems) {
+  total += item.price;
+}
+</pre>
+
+
+<!-- ══════ SECTION 9 ══════ -->
+<h2>9. Key Dart List Methods Reference</h2>
+
+<table>
+  <tr><th>Method</th><th>What it does</th><th>Example</th></tr>
+  <tr><td><code>add(item)</code></td><td>Add one item to the end</td><td><code>list.add(CartItem(...))</code></td></tr>
+  <tr><td><code>removeAt(index)</code></td><td>Remove item at position</td><td><code>list.removeAt(2)</code></td></tr>
+  <tr><td><code>length</code></td><td>Number of items</td><td><code>list.length</code></td></tr>
+  <tr><td><code>isEmpty</code></td><td>True if list has no items</td><td><code>list.isEmpty</code></td></tr>
+  <tr><td><code>map(fn)</code></td><td>Convert each item to something else</td><td><code>list.map((i) => Text(i))</code></td></tr>
+  <tr><td><code>fold(start, fn)</code></td><td>Reduce list to one value</td><td><code>list.fold(0, (s, i) => s + i.price)</code></td></tr>
+</table>
+
+
+<!-- ══════ SECTION 10 ══════ -->
+<h2>10. Summary</h2>
+
+<table>
+  <tr><th>Concept</th><th>What We Did</th></tr>
+  <tr><td>Dart List</td><td>Stored items in <code>List&lt;CartItem&gt;</code>, used <code>add()</code> and <code>removeAt()</code></td></tr>
+  <tr><td>Data model class</td><td>Created <code>CartItem</code> to group name + price together</td></tr>
+  <tr><td>ListView</td><td>Used in SearchScreen for a fixed list of strings</td></tr>
+  <tr><td>ListView.builder</td><td>Used in CartScreen for a dynamic list with add/remove</td></tr>
+  <tr><td>ListTile + Card</td><td>Built clean list rows with leading icon, title, subtitle, trailing button</td></tr>
+  <tr><td>setState</td><td>Called after add/remove so Flutter rebuilds the ListView</td></tr>
+  <tr><td>Expanded</td><td>Wrapped ListView inside Column to prevent infinite height error</td></tr>
+  <tr><td>fold()</td><td>Calculated the running total price from the list</td></tr>
+</table>
+
+
+<!-- ══════ SECTION 11 ══════ -->
+<h2>11. Practice Tasks</h2>
+
+<ol>
+  <li>Add a <strong>quantity</strong> field to <code>CartItem</code> and show it in the subtitle. Update the total calculation.</li>
+  <li>Show a <strong>empty cart</strong> message with an icon when <code>_cartItems.isEmpty</code>.</li>
+  <li>Add a <strong>Clear All</strong> button that calls <code>_cartItems.clear()</code> and <code>setState()</code>.</li>
+  <li>In SearchScreen, convert to <code>ListView.builder</code> — verify it works the same way.</li>
+  <li><strong>Challenge:</strong> Add a <code>TextEditingController</code> and a text field so the user can type a custom item name before adding it to the cart.</li>
+</ol>
+
+<br>
+<hr style="border:none; border-top:1px solid #eee; margin: 24px 0;">
+<p style="text-align:center; color:#aaa; font-size:12px;">
+  BS Mobile Application Development &nbsp;·&nbsp; Lecture 08 &nbsp;·&nbsp; Lists &amp; ListView
+  <br>To save as PDF: open in browser → File → Print → Save as PDF
+</p>
+
+</body>
+</html>
