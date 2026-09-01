@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 07 – Local Data Persistence</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #fff;
+      padding: 40px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800;
+      color: white;
+      padding: 28px 32px;
+      border-radius: 8px;
+      margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+
+    .tip { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+
+    .warn { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2; margin: 12px 0; text-align: center; color: #444; }
+
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    @media print {
+      body { padding: 20px; }
+      pre { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="course">BS — Mobile Application Development &nbsp;|&nbsp; Flutter</div>
+  <h1>Lecture 07 &nbsp;–&nbsp; Local Data Persistence</h1>
+  <div class="meta">
+    Topics: SharedPreferences &nbsp;·&nbsp; Save &amp; read data &nbsp;·&nbsp;
+    First-launch screen &nbsp;·&nbsp; Conditional navigation
+  </div>
+</div>
+
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ol>
+    <li>Understand what <em>local data persistence</em> is and when to use it.</li>
+    <li>Add and use the <strong>shared_preferences</strong> package.</li>
+    <li>Create a <strong>UserStorage</strong> helper class to keep storage logic separate.</li>
+    <li>Build a <strong>first-launch screen</strong> that collects user info and saves it.</li>
+    <li>Implement <strong>conditional navigation</strong> in the Splash screen based on stored data.</li>
+    <li>Read and <strong>display stored data</strong> on the Profile screen.</li>
+  </ol>
+</div>
+
+
+<!-- ══════ SECTION 1 ══════ -->
+<h2>1. What is Local Data Persistence?</h2>
+
+<p>
+  When an app closes, everything in memory (variables, state) is lost.
+  <strong>Local data persistence</strong> means saving data on the device so it
+  survives app restarts.
+</p>
+
+<table>
+  <tr><th>Storage Type</th><th>Best For</th><th>Example</th></tr>
+  <tr><td><strong>SharedPreferences</strong></td><td>Small key-value data</td><td>User name, settings, dark mode toggle</td></tr>
+  <tr><td>SQLite / Hive</td><td>Structured / large data</td><td>Products list, order history</td></tr>
+  <tr><td>File storage</td><td>Files, images, documents</td><td>Downloaded PDFs</td></tr>
+</table>
+
+<p>
+  In this lecture we use <strong>SharedPreferences</strong> — the simplest option,
+  perfect for saving a small number of values like user profile info.
+</p>
+
+
+<!-- ══════ SECTION 2 ══════ -->
+<h2>2. How SharedPreferences Works</h2>
+
+<p>
+  SharedPreferences stores data as <strong>key-value pairs</strong> — like a dictionary.
+  You give each piece of data a unique key (a string), and you can save or retrieve it using that key.
+</p>
+
+<div class="diagram">
+  SharedPreferences (stored on device)<br><br>
+  ┌──────────────┬───────────────────┐<br>
+  │ Key          │ Value             │<br>
+  ├──────────────┼───────────────────┤<br>
+  │ "user_name"  │ "Ali Hassan"      │<br>
+  │ "user_contact"│ "0300-1234567"  │<br>
+  │ "user_address"│ "Street 5, LHR" │<br>
+  └──────────────┴───────────────────┘
+</div>
+
+<h3>Basic operations</h3>
+<pre>
+<span class="cm">// Get instance</span>
+<span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.getInstance();
+
+<span class="cm">// Save a string</span>
+<span class="kw">await</span> prefs.setString(<span class="st">'user_name'</span>, <span class="st">'Ali Hassan'</span>);
+
+<span class="cm">// Read a string (returns null if key does not exist)</span>
+<span class="kw">final</span> name = prefs.getString(<span class="st">'user_name'</span>);
+
+<span class="cm">// Delete a value</span>
+<span class="kw">await</span> prefs.remove(<span class="st">'user_name'</span>);
+</pre>
+
+<div class="tip">
+  <strong>await?</strong> SharedPreferences reads from the device disk — this takes
+  a tiny amount of time. We use <code>await</code> to wait for it to finish before
+  continuing. Any function that uses <code>await</code> must be marked <code>async</code>.
+</div>
+
+
+<!-- ══════ SECTION 3 ══════ -->
+<h2>3. Adding the Package</h2>
+
+<p>SharedPreferences is not built into Flutter — we add it as a dependency.</p>
+
+<p><strong>Step 1</strong> — add to <code>pubspec.yaml</code>:</p>
+<pre>
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^<span class="num">1.0</span>.<span class="num">8</span>
+  shared_preferences: ^<span class="num">2.3</span>.<span class="num">0</span>   <span class="cm">← add this line</span>
+</pre>
+
+<p><strong>Step 2</strong> — run in terminal:</p>
+<pre>
+flutter pub get
+</pre>
+
+<p><strong>Step 3</strong> — import in Dart files where you need it:</p>
+<pre>
+<span class="kw">import</span> <span class="st">'package:shared_preferences/shared_preferences.dart'</span>;
+</pre>
+
+
+<!-- ══════ SECTION 4 ══════ -->
+<h2>4. Project Structure After This Lecture</h2>
+
+<div class="diagram">
+  lib/<br>
+  ├── components/<br>
+  │   ├── top_header.dart<br>
+  │   └── bottom_nav_bar.dart<br>
+  ├── services/<br>
+  │   └── user_storage.dart        <span style="color:#e65100">← NEW: storage helper class</span><br>
+  └── screens/<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── splash.dart             <span style="color:#e65100">← UPDATED: conditional navigation</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── user_info_screen.dart   <span style="color:#e65100">← NEW: first-launch form</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── home.dart<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── search_screen.dart<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── cart_screen.dart<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;└── profile.dart            <span style="color:#e65100">← UPDATED: displays stored data</span>
+</div>
+
+<h3>App flow</h3>
+<div class="diagram">
+  App opens → SplashScreen (2 sec)<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓ check UserStorage.hasUser()<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;NO data &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; YES data<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+  UserInfoScreen &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; MyApp (home)<br>
+  (fill form + save)<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+  MyApp (home)
+</div>
+
+
+<!-- ══════ SECTION 5 ══════ -->
+<h2>5. UserStorage — The Helper Class</h2>
+
+<p>
+  Instead of writing SharedPreferences code in every screen, we create
+  one <strong>service class</strong> that handles all storage operations.
+  Screens just call its methods — they don't need to know how storage works.
+</p>
+
+<span class="filepath">lib/services/user_storage.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:shared_preferences/shared_preferences.dart'</span>;
+
+<span class="kw">class</span> <span class="cl">UserStorage</span> {
+  <span class="cm">// Constants for keys — prevents typos when reading/writing</span>
+  <span class="kw">static const</span> <span class="cl">String</span> _keyName    = <span class="st">'user_name'</span>;
+  <span class="kw">static const</span> <span class="cl">String</span> _keyContact = <span class="st">'user_contact'</span>;
+  <span class="kw">static const</span> <span class="cl">String</span> _keyAddress = <span class="st">'user_address'</span>;
+
+  <span class="cm">// Save all three fields at once</span>
+  <span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; saveUser({
+    <span class="kw">required</span> <span class="cl">String</span> name,
+    <span class="kw">required</span> <span class="cl">String</span> contact,
+    <span class="kw">required</span> <span class="cl">String</span> address,
+  }) <span class="kw">async</span> {
+    <span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.getInstance();
+    <span class="kw">await</span> prefs.setString(_keyName, name);
+    <span class="kw">await</span> prefs.setString(_keyContact, contact);
+    <span class="kw">await</span> prefs.setString(_keyAddress, address);
+  }
+
+  <span class="cm">// Read all three fields, return as a Map</span>
+  <span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="cl">Map</span>&lt;<span class="cl">String</span>, <span class="cl">String</span>&gt;&gt; getUser() <span class="kw">async</span> {
+    <span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.getInstance();
+    <span class="kw">return</span> {
+      <span class="st">'name'</span>:    prefs.getString(_keyName)    ?? <span class="st">''</span>,
+      <span class="st">'contact'</span>: prefs.getString(_keyContact) ?? <span class="st">''</span>,
+      <span class="st">'address'</span>: prefs.getString(_keyAddress) ?? <span class="st">''</span>,
+    };
+  }
+
+  <span class="cm">// Returns true if user data already exists</span>
+  <span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="kw">bool</span>&gt; hasUser() <span class="kw">async</span> {
+    <span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.getInstance();
+    <span class="kw">final</span> name = prefs.getString(_keyName) ?? <span class="st">''</span>;
+    <span class="kw">return</span> name.isNotEmpty;
+  }
+}
+</pre>
+
+<div class="tip">
+  <strong>Why static methods?</strong> We mark the methods <code>static</code> so we can call
+  them without creating an object — <code>UserStorage.hasUser()</code> instead of
+  <code>UserStorage().hasUser()</code>. This is a common pattern for utility/service classes.
+</div>
+
+
+<!-- ══════ SECTION 6 ══════ -->
+<h2>6. UserInfoScreen — First-Launch Form</h2>
+
+<p>
+  This screen is shown <em>only once</em> — the first time the app opens.
+  It collects the user's name, contact, and address, saves them, then navigates to the home screen.
+</p>
+
+<span class="filepath">lib/screens/user_info_screen.dart — key parts</span>
+<pre>
+<span class="kw">class</span> <span class="cl">_UserInfoScreenState</span> <span class="kw">extends</span> <span class="cl">State</span>&lt;<span class="cl">UserInfoScreen</span>&gt; {
+  <span class="kw">final</span> <span class="cl">TextEditingController</span> _nameController    = <span class="cl">TextEditingController</span>();
+  <span class="kw">final</span> <span class="cl">TextEditingController</span> _contactController = <span class="cl">TextEditingController</span>();
+  <span class="kw">final</span> <span class="cl">TextEditingController</span> _addressController  = <span class="cl">TextEditingController</span>();
+
+  <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; _saveAndContinue() <span class="kw">async</span> {
+    <span class="cm">// 1. Validate — all fields must be filled</span>
+    <span class="kw">if</span> (_nameController.text.isEmpty || ...) {
+      <span class="cl">ScaffoldMessenger</span>.of(context).showSnackBar(...);
+      <span class="kw">return</span>;
+    }
+
+    <span class="cm">// 2. Save to local storage via UserStorage</span>
+    <span class="kw">await</span> <span class="cl">UserStorage</span>.saveUser(
+      name:    _nameController.text,
+      contact: _contactController.text,
+      address: _addressController.text,
+    );
+
+    <span class="cm">// 3. Navigate to home — pushReplacement so user cannot go back</span>
+    <span class="cl">Navigator</span>.pushReplacement(
+      context,
+      <span class="cl">MaterialPageRoute</span>(builder: (_) =&gt; <span class="kw">const</span> <span class="cl">MyApp</span>()),
+    );
+  }
+}
+</pre>
+
+<div class="tip">
+  <strong>Why pushReplacement?</strong> We use <code>pushReplacement</code> instead of
+  <code>push</code> so the user cannot press the back button to return to the info form
+  after saving. The form is a one-time screen.
+</div>
+
+
+<!-- ══════ SECTION 7 ══════ -->
+<h2>7. Conditional Navigation in Splash Screen</h2>
+
+<p>
+  The Splash screen is now responsible for deciding where to send the user.
+  After the 2-second delay, it checks <code>UserStorage.hasUser()</code> and
+  navigates accordingly.
+</p>
+
+<span class="filepath">lib/screens/splash.dart</span>
+<pre>
+<span class="kw">class</span> <span class="cl">_SplashScreenState</span> <span class="kw">extends</span> <span class="cl">State</span>&lt;<span class="cl">SplashScreen</span>&gt; {
+  @override
+  <span class="kw">void</span> initState() {
+    <span class="kw">super</span>.initState();
+    _navigate(); <span class="cm">// call our async method</span>
+  }
+
+  <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; _navigate() <span class="kw">async</span> {
+    <span class="cm">// Wait 2 seconds for the splash to show</span>
+    <span class="kw">await</span> <span class="cl">Future</span>.delayed(<span class="kw">const</span> <span class="cl">Duration</span>(seconds: <span class="num">2</span>));
+
+    <span class="kw">if</span> (!mounted) <span class="kw">return</span>; <span class="cm">// safety check</span>
+
+    <span class="cm">// Check if user data exists in storage</span>
+    <span class="kw">final</span> userExists = <span class="kw">await</span> <span class="cl">UserStorage</span>.hasUser();
+
+    <span class="kw">if</span> (!mounted) <span class="kw">return</span>; <span class="cm">// safety check after await</span>
+
+    <span class="cl">Navigator</span>.pushReplacement(
+      context,
+      <span class="cl">MaterialPageRoute</span>(
+        builder: (_) =&gt; userExists
+            ? <span class="kw">const</span> <span class="cl">MyApp</span>()            <span class="cm">// data found → go to home</span>
+            : <span class="kw">const</span> <span class="cl">UserInfoScreen</span>(),  <span class="cm">// no data → show form</span>
+      ),
+    );
+  }
+}
+</pre>
+
+<h3>Why do we check <code>mounted</code> twice?</h3>
+<p>
+  After an <code>await</code>, the widget might have been removed from the screen
+  (e.g. user closed the app). Calling <code>Navigator</code> on an unmounted widget
+  causes an error. The <code>if (!mounted) return</code> check prevents this.
+</p>
+
+
+<!-- ══════ SECTION 8 ══════ -->
+<h2>8. Profile Screen — Reading &amp; Displaying Data</h2>
+
+<p>
+  The Profile tab reads the saved data in <code>initState</code> and displays it.
+</p>
+
+<span class="filepath">lib/screens/profile.dart — key parts</span>
+<pre>
+<span class="kw">class</span> <span class="cl">_ProfileScreenState</span> <span class="kw">extends</span> <span class="cl">State</span>&lt;<span class="cl">ProfileScreen</span>&gt; {
+  <span class="cl">String</span> name = <span class="st">''</span>;
+  <span class="cl">String</span> contact = <span class="st">''</span>;
+  <span class="cl">String</span> address = <span class="st">''</span>;
+
+  @override
+  <span class="kw">void</span> initState() {
+    <span class="kw">super</span>.initState();
+    _loadUser(); <span class="cm">// load data when the screen is created</span>
+  }
+
+  <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; _loadUser() <span class="kw">async</span> {
+    <span class="kw">final</span> data = <span class="kw">await</span> <span class="cl">UserStorage</span>.getUser();
+    setState(() {           <span class="cm">// setState to rebuild UI with the loaded data</span>
+      name    = data[<span class="st">'name'</span>]!;
+      contact = data[<span class="st">'contact'</span>]!;
+      address = data[<span class="st">'address'</span>]!;
+    });
+  }
+}
+</pre>
+
+
+<!-- ══════ SECTION 9 ══════ -->
+<h2>9. async / await — Quick Reference</h2>
+
+<table>
+  <tr><th>Keyword</th><th>Meaning</th></tr>
+  <tr><td><code>async</code></td><td>Marks a function as asynchronous — it can use <code>await</code> inside</td></tr>
+  <tr><td><code>await</code></td><td>Pause here until this operation finishes, then continue</td></tr>
+  <tr><td><code>Future&lt;void&gt;</code></td><td>Return type for an async function that returns nothing</td></tr>
+  <tr><td><code>Future&lt;bool&gt;</code></td><td>Return type for an async function that eventually returns a bool</td></tr>
+</table>
+
+<pre>
+<span class="cm">// Without async/await — wrong, result not ready yet</span>
+<span class="kw">final</span> name = <span class="cl">SharedPreferences</span>.getInstance().getString(<span class="st">'user_name'</span>); <span class="cm">// ❌</span>
+
+<span class="cm">// With async/await — correct</span>
+<span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.getInstance();
+<span class="kw">final</span> name  = prefs.getString(<span class="st">'user_name'</span>); <span class="cm">// ✅</span>
+</pre>
+
+
+<!-- ══════ SECTION 10 ══════ -->
+<h2>10. Summary</h2>
+
+<table>
+  <tr><th>Concept</th><th>What We Did</th></tr>
+  <tr><td>SharedPreferences</td><td>Stored user data as key-value pairs on the device</td></tr>
+  <tr><td>UserStorage class</td><td>Kept all storage code in one place (separation of concerns)</td></tr>
+  <tr><td>static methods</td><td>Called storage methods without creating an object</td></tr>
+  <tr><td>First-launch screen</td><td>Collected user info once and saved it permanently</td></tr>
+  <tr><td>Conditional navigation</td><td>Splash checks stored data → goes to form or home</td></tr>
+  <tr><td>initState + async</td><td>Loaded data from storage when Profile screen opened</td></tr>
+  <tr><td>mounted check</td><td>Prevented Navigator errors after async operations</td></tr>
+</table>
+
+
+<!-- ══════ SECTION 11 ══════ -->
+<h2>11. Practice Tasks</h2>
+
+<ol>
+  <li>Add an <strong>Edit</strong> button on the Profile screen that lets the user update their saved info.</li>
+  <li>Add a boolean preference <code>'dark_mode'</code> and toggle it with a Switch widget.</li>
+  <li>Add a <strong>Logout</strong> button that clears all SharedPreferences data and navigates back to the UserInfoScreen.</li>
+  <li><strong>Challenge:</strong> Show the user's name in the <code>TopHeader</code> on the Home tab (hint: read it from <code>UserStorage.getUser()</code> in <code>initState</code>).</li>
+</ol>
+
+<br>
+<hr style="border:none; border-top:1px solid #eee; margin: 24px 0;">
+<p style="text-align:center; color:#aaa; font-size:12px;">
+  BS Mobile Application Development &nbsp;·&nbsp; Lecture 07 &nbsp;·&nbsp; Local Data Persistence
+  <br>To save as PDF: open in browser → File → Print → Save as PDF
+</p>
+
+</body>
+</html>
