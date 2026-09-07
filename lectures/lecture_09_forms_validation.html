@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 09 – Forms & Validation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px;
+      color: #1a1a1a;
+      background: #fff;
+      padding: 40px;
+      max-width: 860px;
+      margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800;
+      color: white;
+      padding: 28px 32px;
+      border-radius: 8px;
+      margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+    .err { color: #f38ba8; }
+
+    .tip  { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+    .warn { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2; margin: 12px 0; text-align: center; color: #444; }
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    .before-after { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+    .before-after > div > p { font-weight: bold; margin-bottom: 6px; }
+    .bad  { color: #f38ba8; }
+    .good { color: #a6e3a1; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    @media print {
+      body { padding: 20px; }
+      pre { font-size: 11px; }
+      .before-after { grid-template-columns: 1fr; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="course">BS — Mobile Application Development &nbsp;|&nbsp; Flutter</div>
+  <h1>Lecture 09 &nbsp;–&nbsp; Forms &amp; Validation</h1>
+  <div class="meta">
+    Topics: Form &nbsp;·&nbsp; GlobalKey &nbsp;·&nbsp; TextFormField &nbsp;·&nbsp;
+    validator &nbsp;·&nbsp; validate() &nbsp;·&nbsp; Inline error messages
+  </div>
+</div>
+
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ol>
+    <li>Understand why validation matters and what problems it prevents.</li>
+    <li>Use the <strong>Form</strong> widget as a container for form fields.</li>
+    <li>Use <strong>GlobalKey&lt;FormState&gt;</strong> to control the form from outside.</li>
+    <li>Replace <strong>TextField</strong> with <strong>TextFormField</strong> and write <strong>validator</strong> functions.</li>
+    <li>Trigger validation with <strong>validate()</strong> on button press.</li>
+    <li>Understand what inline error messages are and how they appear automatically.</li>
+  </ol>
+</div>
+
+
+<!-- ══════ SECTION 1 ══════ -->
+<h2>1. Why Validation?</h2>
+
+<p>Without validation, a user can submit a form with empty fields or wrong data.
+This causes crashes, bad data in storage, and poor user experience.</p>
+
+<table>
+  <tr><th>Without Validation</th><th>With Validation</th></tr>
+  <tr><td>User submits empty name → stored as ""</td><td>Error shown immediately → user fixes it</td></tr>
+  <tr><td>Phone number "abc" stored → app breaks later</td><td>Error: "Enter a valid number"</td></tr>
+  <tr><td>One generic Snackbar for all problems</td><td>Each field shows its own specific error below it</td></tr>
+</table>
+
+
+<!-- ══════ SECTION 2 ══════ -->
+<h2>2. The Three Key Pieces</h2>
+
+<div class="diagram">
+  <strong>Form</strong> widget<br>
+  &nbsp;&nbsp;└── key: _formKey &nbsp;← connects Form to FormState<br><br>
+  <strong>GlobalKey&lt;FormState&gt;</strong> _formKey<br>
+  &nbsp;&nbsp;└── _formKey.currentState!.validate() &nbsp;← triggers all validators<br><br>
+  <strong>TextFormField</strong> (inside Form)<br>
+  &nbsp;&nbsp;└── validator: (value) { ... return null or error string }
+</div>
+
+<table>
+  <tr><th>Piece</th><th>What it does</th></tr>
+  <tr><td><code>Form</code></td><td>A widget that groups all <code>TextFormField</code> widgets together</td></tr>
+  <tr><td><code>GlobalKey&lt;FormState&gt;</code></td><td>A unique key that lets you call <code>validate()</code> on the form from your button</td></tr>
+  <tr><td><code>TextFormField</code></td><td>Like <code>TextField</code> but supports a <code>validator</code> function</td></tr>
+  <tr><td><code>validator</code></td><td>A function that checks the field — returns an error string or <code>null</code></td></tr>
+</table>
+
+
+<!-- ══════ SECTION 3 ══════ -->
+<h2>3. TextField vs TextFormField</h2>
+
+<div class="before-after">
+  <div>
+    <p class="bad">❌ Before — TextField (no built-in validation)</p>
+    <pre style="font-size:12px;">
+<span class="cl">TextField</span>(
+  controller: _nameController,
+  decoration: <span class="kw">const</span> <span class="cl">InputDecoration</span>(
+    hintText: <span class="st">'Enter name'</span>,
+    border: <span class="cl">OutlineInputBorder</span>(),
+  ),
+)
+
+<span class="cm">// Button: manual check</span>
+<span class="kw">if</span> (_nameController.text.isEmpty) {
+  <span class="cm">// show snackbar</span>
+}</pre>
+  </div>
+  <div>
+    <p class="good">✅ After — TextFormField (with validator)</p>
+    <pre style="font-size:12px;">
+<span class="cl">TextFormField</span>(
+  controller: _nameController,
+  decoration: <span class="kw">const</span> <span class="cl">InputDecoration</span>(
+    hintText: <span class="st">'Enter name'</span>,
+    border: <span class="cl">OutlineInputBorder</span>(),
+  ),
+  validator: (value) {
+    <span class="kw">if</span> (value!.isEmpty) {
+      <span class="kw">return</span> <span class="st">'Name is required'</span>;
+    }
+    <span class="kw">return null</span>; <span class="cm">// valid</span>
+  },
+)</pre>
+  </div>
+</div>
+
+<div class="tip">
+  <strong>Key difference:</strong> <code>TextFormField</code> automatically shows the error
+  string returned by <code>validator</code> as red text <em>below the field</em>.
+  With plain <code>TextField</code>, you have to manage error display yourself.
+</div>
+
+
+<!-- ══════ SECTION 4 ══════ -->
+<h2>4. How the validator Function Works</h2>
+
+<p>The <code>validator</code> receives the current text value of the field.
+You check it and either return an error message or <code>null</code>.</p>
+
+<pre>
+validator: (value) {
+  <span class="cm">// 'value' is what the user typed — it can be null so we check for that too</span>
+
+  <span class="kw">if</span> (value == <span class="kw">null</span> || value.trim().isEmpty) {
+    <span class="kw">return</span> <span class="st">'This field is required'</span>; <span class="cm">// ← shown as red error below the field</span>
+  }
+
+  <span class="kw">if</span> (value.length &lt; <span class="num">3</span>) {
+    <span class="kw">return</span> <span class="st">'Must be at least 3 characters'</span>; <span class="cm">// ← another error condition</span>
+  }
+
+  <span class="kw">return null</span>; <span class="cm">// ← null means "no error, field is valid"</span>
+}
+</pre>
+
+<div class="diagram">
+  User types "AB" → taps Save<br><br>
+  validate() calls validator("AB")<br>
+  &nbsp;&nbsp;&nbsp;→ value.length &lt; 3 is true<br>
+  &nbsp;&nbsp;&nbsp;→ returns "Must be at least 3 characters"<br><br>
+  Flutter shows error text below the field in red<br>
+  validate() returns <strong>false</strong> → button does nothing
+</div>
+
+
+<!-- ══════ SECTION 5 ══════ -->
+<h2>5. GlobalKey — Connecting Button to Form</h2>
+
+<p>
+  The form fields are inside a <code>Form</code> widget, but the Save button
+  is not inside a field — it's just a button in the Column. How does the button
+  trigger validation on all fields? Through the <strong>GlobalKey</strong>.
+</p>
+
+<pre>
+<span class="cm">// Step 1: create the key in the state class</span>
+<span class="kw">final</span> <span class="cl">GlobalKey</span>&lt;<span class="cl">FormState</span>&gt; _formKey = <span class="cl">GlobalKey</span>&lt;<span class="cl">FormState</span>&gt;();
+
+<span class="cm">// Step 2: attach it to the Form widget</span>
+<span class="cl">Form</span>(
+  key: _formKey,
+  child: <span class="cl">Column</span>( ... )
+)
+
+<span class="cm">// Step 3: call validate() from the button's onPressed</span>
+onPressed: () {
+  <span class="kw">if</span> (!_formKey.currentState!.validate()) {
+    <span class="kw">return</span>; <span class="cm">// stop here — errors are already shown on screen</span>
+  }
+  <span class="cm">// all fields are valid — proceed</span>
+  _saveAndContinue();
+}
+</pre>
+
+<div class="tip">
+  <strong>currentState!</strong> — The <code>!</code> tells Dart "I know this is not null".
+  It is safe here because the Form is always built before the button can be pressed.
+</div>
+
+
+<!-- ══════ SECTION 6 ══════ -->
+<h2>6. Full Upgraded UserInfoScreen</h2>
+
+<span class="filepath">lib/screens/user_info_screen.dart</span>
+<pre>
+<span class="kw">class</span> <span class="cl">_UserInfoScreenState</span> <span class="kw">extends</span> <span class="cl">State</span>&lt;<span class="cl">UserInfoScreen</span>&gt; {
+
+  <span class="kw">final</span> <span class="cl">GlobalKey</span>&lt;<span class="cl">FormState</span>&gt; _formKey = <span class="cl">GlobalKey</span>&lt;<span class="cl">FormState</span>&gt;();
+
+  <span class="kw">final</span> <span class="cl">TextEditingController</span> _nameController    = <span class="cl">TextEditingController</span>();
+  <span class="kw">final</span> <span class="cl">TextEditingController</span> _contactController = <span class="cl">TextEditingController</span>();
+  <span class="kw">final</span> <span class="cl">TextEditingController</span> _addressController  = <span class="cl">TextEditingController</span>();
+
+  <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; _saveAndContinue() <span class="kw">async</span> {
+    <span class="cm">// validate() runs ALL validators — returns false if any fail</span>
+    <span class="kw">if</span> (!_formKey.currentState!.validate()) <span class="kw">return</span>;
+
+    <span class="kw">await</span> <span class="cl">UserStorage</span>.saveUser(
+      name:    _nameController.text.trim(),
+      contact: _contactController.text.trim(),
+      address: _addressController.text.trim(),
+    );
+
+    <span class="kw">if</span> (!mounted) <span class="kw">return</span>;
+    <span class="cl">Navigator</span>.pushReplacement(context,
+      <span class="cl">MaterialPageRoute</span>(builder: (_) =&gt; <span class="kw">const</span> <span class="cl">MyApp</span>()));
+  }
+
+  @override
+  <span class="cl">Widget</span> build(<span class="cl">BuildContext</span> context) {
+    <span class="kw">return</span> <span class="cl">Scaffold</span>(
+      body: <span class="cl">Form</span>(          <span class="cm">// ← wrap fields in Form</span>
+        key: _formKey,     <span class="cm">// ← attach key</span>
+        child: <span class="cl">Column</span>(
+          children: [
+
+            <span class="cm">// Name</span>
+            <span class="cl">TextFormField</span>(
+              controller: _nameController,
+              validator: (value) {
+                <span class="kw">if</span> (value == <span class="kw">null</span> || value.trim().isEmpty)
+                  <span class="kw">return</span> <span class="st">'Name is required'</span>;
+                <span class="kw">if</span> (value.trim().length &lt; <span class="num">3</span>)
+                  <span class="kw">return</span> <span class="st">'Name must be at least 3 characters'</span>;
+                <span class="kw">return null</span>;
+              },
+            ),
+
+            <span class="cm">// Contact</span>
+            <span class="cl">TextFormField</span>(
+              controller: _contactController,
+              keyboardType: <span class="cl">TextInputType</span>.phone,
+              validator: (value) {
+                <span class="kw">if</span> (value == <span class="kw">null</span> || value.trim().isEmpty)
+                  <span class="kw">return</span> <span class="st">'Contact number is required'</span>;
+                <span class="kw">final</span> digits = value.replaceAll(<span class="cl">RegExp</span>(<span class="st">r'\D'</span>), <span class="st">''</span>);
+                <span class="kw">if</span> (digits.length &lt; <span class="num">10</span>)
+                  <span class="kw">return</span> <span class="st">'Enter a valid contact number'</span>;
+                <span class="kw">return null</span>;
+              },
+            ),
+
+            <span class="cm">// Address</span>
+            <span class="cl">TextFormField</span>(
+              controller: _addressController,
+              maxLines: <span class="num">3</span>,
+              validator: (value) {
+                <span class="kw">if</span> (value == <span class="kw">null</span> || value.trim().isEmpty)
+                  <span class="kw">return</span> <span class="st">'Address is required'</span>;
+                <span class="kw">if</span> (value.trim().length &lt; <span class="num">10</span>)
+                  <span class="kw">return</span> <span class="st">'Please enter a more complete address'</span>;
+                <span class="kw">return null</span>;
+              },
+            ),
+
+            <span class="cl">ElevatedButton</span>(
+              onPressed: _saveAndContinue,
+              child: <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Save & Continue'</span>),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+</pre>
+
+
+<!-- ══════ SECTION 7 ══════ -->
+<h2>7. Validation Flow — Step by Step</h2>
+
+<div class="diagram">
+  User taps "Save &amp; Continue"<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+  <code>_formKey.currentState!.validate()</code> is called<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+  Flutter calls <code>validator()</code> on every TextFormField<br>
+  &nbsp;&nbsp;├── Name validator → returns <span style="color:#f38ba8">"Name is required"</span> → field shows error in red<br>
+  &nbsp;&nbsp;├── Contact validator → returns <span style="color:#a6e3a1">null</span> → field is valid ✓<br>
+  &nbsp;&nbsp;└── Address validator → returns <span style="color:#f38ba8">"Please enter a more complete address"</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+  <code>validate()</code> returns <strong>false</strong> (at least one error)<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br>
+  <code>_saveAndContinue()</code> returns early — nothing saved
+</div>
+
+
+<!-- ══════ SECTION 8 ══════ -->
+<h2>8. The Contact Number Validator — RegExp</h2>
+
+<p>
+  For the contact field we use a <strong>Regular Expression (RegExp)</strong>
+  to strip out all non-digit characters before counting the length.
+  This allows inputs like <code>0300-123-4567</code> or <code>0300 123 4567</code>.
+</p>
+
+<pre>
+<span class="kw">final</span> digits = value.replaceAll(<span class="cl">RegExp</span>(<span class="st">r'\D'</span>), <span class="st">''</span>);
+<span class="cm">//                                      ↑ \D means "any non-digit character"</span>
+<span class="cm">// '0300-123-4567' → replaceAll → '03001234567' (length 11) ✓</span>
+<span class="cm">// 'abc'           → replaceAll → ''             (length 0)  ✗</span>
+
+<span class="kw">if</span> (digits.length &lt; <span class="num">10</span>) <span class="kw">return</span> <span class="st">'Enter a valid contact number'</span>;
+</pre>
+
+
+<!-- ══════ SECTION 9 ══════ -->
+<h2>9. trim() — Why We Use It</h2>
+
+<p>
+  Users sometimes accidentally type spaces before or after their input.
+  <code>trim()</code> removes leading and trailing whitespace so <code>"  Ali  "</code>
+  becomes <code>"Ali"</code>.
+</p>
+
+<pre>
+<span class="cm">// Without trim — "  " passes the isEmpty check but is useless data</span>
+<span class="kw">if</span> (value.isEmpty) ...
+
+<span class="cm">// With trim — spaces-only input correctly fails the check</span>
+<span class="kw">if</span> (value.trim().isEmpty) ...
+</pre>
+
+
+<!-- ══════ SECTION 10 ══════ -->
+<h2>10. Before vs After — Summary of Changes</h2>
+
+<table>
+  <tr><th></th><th>Before (Lecture 07)</th><th>After (This Lecture)</th></tr>
+  <tr><td>Field widget</td><td><code>TextField</code></td><td><code>TextFormField</code></td></tr>
+  <tr><td>Grouped by</td><td>Plain <code>Column</code></td><td><code>Form</code> widget with a key</td></tr>
+  <tr><td>Validation trigger</td><td>Manual <code>if</code> check in button</td><td><code>_formKey.currentState!.validate()</code></td></tr>
+  <tr><td>Error display</td><td>One Snackbar for everything</td><td>Inline red text below each field</td></tr>
+  <tr><td>Error specificity</td><td>Generic "fill in all fields"</td><td>Per-field specific messages</td></tr>
+  <tr><td>Logic saved if invalid</td><td>Only if manual check passes</td><td>Only if all validators return null</td></tr>
+</table>
+
+
+<!-- ══════ SECTION 11 ══════ -->
+<h2>11. Practice Tasks</h2>
+
+<ol>
+  <li>Add an <strong>email field</strong> to the form. Write a validator that checks the value contains <code>@</code> and a <code>.</code>.</li>
+  <li>Add a validator to the <strong>name field</strong> that rejects names containing numbers (hint: use <code>RegExp(r'[0-9]')</code> and <code>.hasMatch()</code>).</li>
+  <li>Add <strong>autovalidateMode: AutovalidateMode.onUserInteraction</strong> to the <code>Form</code> widget — notice how errors now appear as the user types instead of only on submit.</li>
+  <li><strong>Challenge:</strong> Add a <strong>password field</strong> with <code>obscureText: true</code> and a confirm password field. Write a validator that checks both values match.</li>
+</ol>
+
+<br>
+<hr style="border:none; border-top:1px solid #eee; margin: 24px 0;">
+<p style="text-align:center; color:#aaa; font-size:12px;">
+  BS Mobile Application Development &nbsp;·&nbsp; Lecture 09 &nbsp;·&nbsp; Forms &amp; Validation
+  <br>To save as PDF: open in browser → File → Print → Save as PDF
+</p>
+
+</body>
+</html>

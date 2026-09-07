@@ -81,7 +81,10 @@ class _CartScreenState extends State<CartScreen> {
                         subtitle: Text('Rs. ${item.price.toStringAsFixed(0)}'),
                         // Delete button on the right
                         trailing: IconButton(
-                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          icon: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.red,
+                          ),
                           onPressed: () => _removeItem(index),
                         ),
                       ),
@@ -102,7 +105,10 @@ class _CartScreenState extends State<CartScreen> {
             children: [
               Text(
                 'Total: Rs. ${_total.toStringAsFixed(0)}',
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
