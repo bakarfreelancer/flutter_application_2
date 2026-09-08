@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 10 – API Integration & HTTP Requests</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px; color: #1a1a1a; background: #fff;
+      padding: 40px; max-width: 860px; margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800; color: white;
+      padding: 28px 32px; border-radius: 8px; margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+
+    .tip  { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+    .warn { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2.2; margin: 12px 0; text-align: center; color: #444; }
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    @media print {
+      body { padding: 20px; }
+      pre { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="course">BS — Mobile Application Development &nbsp;|&nbsp; Flutter</div>
+  <h1>Lecture 10 &nbsp;–&nbsp; API Integration &amp; HTTP Requests</h1>
+  <div class="meta">
+    Topics: REST API &nbsp;·&nbsp; JSON &nbsp;·&nbsp; http package &nbsp;·&nbsp;
+    Model class &nbsp;·&nbsp; Service class &nbsp;·&nbsp; FutureBuilder &nbsp;·&nbsp; Image.network
+  </div>
+</div>
+
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ol>
+    <li>Understand what an API is and how apps communicate with the internet.</li>
+    <li>Add and use the <strong>http</strong> package to make GET requests.</li>
+    <li>Parse a <strong>JSON</strong> response into Dart objects using a model class.</li>
+    <li>Create a <strong>service class</strong> to keep API logic separate from screens.</li>
+    <li>Use <strong>FutureBuilder</strong> to handle loading, error, and data states.</li>
+    <li>Display <strong>network images</strong> using <code>Image.network</code>.</li>
+  </ol>
+</div>
+
+
+<!-- ══════ SECTION 1 ══════ -->
+<h2>1. What is an API?</h2>
+
+<p>
+  An <strong>API (Application Programming Interface)</strong> is a way for your app
+  to get data from a server on the internet. You send a <em>request</em>,
+  the server sends back a <em>response</em> — usually in <strong>JSON</strong> format.
+</p>
+
+<div class="diagram">
+  Flutter App &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; Internet &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; DummyJSON Server<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;── GET /products ──────────────────────────→<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;←── JSON response ──────────────────────────
+</div>
+
+<p>We use <strong>DummyJSON</strong> (<code>dummyjson.com</code>) — a free fake product API.
+No account or API key needed.</p>
+
+<table>
+  <tr><th>Endpoint</th><th>What it returns</th></tr>
+  <tr><td><code>dummyjson.com/products?limit=20</code></td><td>List of 20 products</td></tr>
+  <tr><td><code>dummyjson.com/products/search?q=phone</code></td><td>Products matching "phone"</td></tr>
+</table>
+
+
+<!-- ══════ SECTION 2 ══════ -->
+<h2>2. What is JSON?</h2>
+
+<p>
+  <strong>JSON (JavaScript Object Notation)</strong> is the standard format for
+  sending data over the internet. It looks like a Dart Map.
+</p>
+
+<pre>
+<span class="cm">// JSON response from dummyjson.com/products</span>
+{
+  <span class="st">"products"</span>: [
+    {
+      <span class="st">"id"</span>: <span class="num">1</span>,
+      <span class="st">"title"</span>: <span class="st">"Essence Mascara Lash Princess"</span>,
+      <span class="st">"price"</span>: <span class="num">9.99</span>,
+      <span class="st">"category"</span>: <span class="st">"beauty"</span>,
+      <span class="st">"thumbnail"</span>: <span class="st">"https://cdn.dummyjson.com/..."</span>,
+      <span class="st">"rating"</span>: <span class="num">4.7</span>
+    },
+    ...
+  ]
+}
+</pre>
+
+<p>In Dart, we use <code>jsonDecode()</code> to convert this JSON string into a
+<code>Map&lt;String, dynamic&gt;</code> that we can read like a normal Dart map.</p>
+
+
+<!-- ══════ SECTION 3 ══════ -->
+<h2>3. Project Structure</h2>
+
+<div class="diagram">
+  lib/<br>
+  ├── models/<br>
+  │   └── product.dart          <span style="color:#e65100">← NEW: data model class</span><br>
+  ├── services/<br>
+  │   ├── user_storage.dart<br>
+  │   └── product_service.dart  <span style="color:#e65100">← NEW: API calls</span><br>
+  └── screens/<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── home.dart           <span style="color:#e65100">← UPDATED: shows product list</span><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;└── search_screen.dart  <span style="color:#e65100">← UPDATED: search products</span>
+</div>
+
+
+<!-- ══════ SECTION 4 ══════ -->
+<h2>4. Adding the http Package</h2>
+
+<p><strong>pubspec.yaml</strong></p>
+<pre>
+dependencies:
+  http: ^<span class="num">1.2</span>.<span class="num">0</span>    <span class="cm">← add this</span>
+</pre>
+
+<p>Run <code>flutter pub get</code> in the terminal.</p>
+
+<p><strong>AndroidManifest.xml</strong> — internet permission required on Android:</p>
+<pre>
+&lt;manifest&gt;
+  &lt;uses-permission android:name=<span class="st">"android.permission.INTERNET"</span>/&gt;  <span class="cm">← add this</span>
+  &lt;application ...&gt;
+</pre>
+
+<div class="warn">
+  <strong>Without the internet permission</strong>, network requests will silently fail on Android
+  even though the code is correct. Always add this line before testing.
+</div>
+
+
+<!-- ══════ SECTION 5 ══════ -->
+<h2>5. Product Model Class</h2>
+
+<p>
+  We create a <code>Product</code> class to represent one product.
+  The <strong>factory constructor</strong> <code>fromJson()</code> converts
+  a raw JSON map into a clean Dart object.
+</p>
+
+<span class="filepath">lib/models/product.dart</span>
+<pre>
+<span class="kw">class</span> <span class="cl">Product</span> {
+  <span class="kw">final int</span> id;
+  <span class="kw">final</span> <span class="cl">String</span> title;
+  <span class="kw">final double</span> price;
+  <span class="kw">final</span> <span class="cl">String</span> description;
+  <span class="kw">final</span> <span class="cl">String</span> category;
+  <span class="kw">final</span> <span class="cl">String</span> thumbnail;  <span class="cm">// image URL</span>
+  <span class="kw">final double</span> rating;
+
+  <span class="cl">Product</span>({
+    <span class="kw">required this</span>.id,    <span class="kw">required this</span>.title,
+    <span class="kw">required this</span>.price, <span class="kw">required this</span>.description,
+    <span class="kw">required this</span>.category, <span class="kw">required this</span>.thumbnail,
+    <span class="kw">required this</span>.rating,
+  });
+
+  <span class="cm">// Converts a JSON map → Product object</span>
+  <span class="kw">factory</span> <span class="cl">Product</span>.fromJson(<span class="cl">Map</span>&lt;<span class="cl">String</span>, <span class="kw">dynamic</span>&gt; json) {
+    <span class="kw">return</span> <span class="cl">Product</span>(
+      id:          json[<span class="st">'id'</span>],
+      title:       json[<span class="st">'title'</span>],
+      price:       (json[<span class="st">'price'</span>] <span class="kw">as</span> num).toDouble(),
+      description: json[<span class="st">'description'</span>],
+      category:    json[<span class="st">'category'</span>],
+      thumbnail:   json[<span class="st">'thumbnail'</span>],
+      rating:      (json[<span class="st">'rating'</span>] <span class="kw">as</span> num).toDouble(),
+    );
+  }
+}
+</pre>
+
+<div class="tip">
+  <strong>Why cast to num first?</strong> JSON numbers can be integers (<code>9</code>) or
+  decimals (<code>9.99</code>). Casting to <code>num</code> first, then calling
+  <code>.toDouble()</code>, handles both cases safely.
+</div>
+
+
+<!-- ══════ SECTION 6 ══════ -->
+<h2>6. ProductService — API Calls</h2>
+
+<span class="filepath">lib/services/product_service.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'dart:convert'</span>;
+<span class="kw">import</span> <span class="st">'package:http/http.dart'</span> <span class="kw">as</span> http;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/models/product.dart'</span>;
+
+<span class="kw">class</span> <span class="cl">ProductService</span> {
+  <span class="kw">static const</span> <span class="cl">String</span> _baseUrl = <span class="st">'https://dummyjson.com'</span>;
+
+  <span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="cl">List</span>&lt;<span class="cl">Product</span>&gt;&gt; getProducts() <span class="kw">async</span> {
+    <span class="cm">// 1. Make the HTTP GET request</span>
+    <span class="kw">final</span> response = <span class="kw">await</span> http.get(
+      <span class="cl">Uri</span>.parse(<span class="st">'$_baseUrl/products?limit=20'</span>),
+    );
+
+    <span class="cm">// 2. Check the status code — 200 means success</span>
+    <span class="kw">if</span> (response.statusCode == <span class="num">200</span>) {
+      <span class="kw">final</span> data = jsonDecode(response.body);      <span class="cm">// JSON string → Map</span>
+      <span class="kw">final</span> <span class="cl">List</span> productsJson = data[<span class="st">'products'</span>]; <span class="cm">// get the array</span>
+      <span class="cm">// 3. Convert each JSON map into a Product object</span>
+      <span class="kw">return</span> productsJson.map((p) =&gt; <span class="cl">Product</span>.fromJson(p)).toList();
+    }
+
+    <span class="kw">throw</span> <span class="cl">Exception</span>(<span class="st">'Failed to load products'</span>);
+  }
+
+  <span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="cl">List</span>&lt;<span class="cl">Product</span>&gt;&gt; searchProducts(<span class="cl">String</span> query) <span class="kw">async</span> {
+    <span class="kw">final</span> response = <span class="kw">await</span> http.get(
+      <span class="cl">Uri</span>.parse(<span class="st">'$_baseUrl/products/search?q=$query'</span>),
+    );
+    <span class="kw">if</span> (response.statusCode == <span class="num">200</span>) {
+      <span class="kw">final</span> data = jsonDecode(response.body);
+      <span class="kw">return</span> (data[<span class="st">'products'</span>] <span class="kw">as</span> <span class="cl">List</span>)
+          .map((p) =&gt; <span class="cl">Product</span>.fromJson(p))
+          .toList();
+    }
+    <span class="kw">throw</span> <span class="cl">Exception</span>(<span class="st">'Failed to search products'</span>);
+  }
+}
+</pre>
+
+<h3>HTTP Status Codes — Quick Reference</h3>
+<table>
+  <tr><th>Code</th><th>Meaning</th></tr>
+  <tr><td>200</td><td>OK — request succeeded, data in body</td></tr>
+  <tr><td>404</td><td>Not Found — wrong URL</td></tr>
+  <tr><td>500</td><td>Server Error — something wrong on the server</td></tr>
+</table>
+
+
+<!-- ══════ SECTION 7 ══════ -->
+<h2>7. FutureBuilder — The Key Widget</h2>
+
+<p>
+  A network request takes time. <strong>FutureBuilder</strong> is a widget that
+  watches a <code>Future</code> and automatically rebuilds when its state changes.
+  It handles three states so you don't have to.
+</p>
+
+<div class="diagram">
+  FutureBuilder watches _productsFuture<br><br>
+  &nbsp;&nbsp;ConnectionState.waiting &nbsp;→ show CircularProgressIndicator<br>
+  &nbsp;&nbsp;snapshot.hasError &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ show error message<br>
+  &nbsp;&nbsp;snapshot.hasData &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ show ListView with products
+</div>
+
+<pre>
+<span class="cl">FutureBuilder</span>&lt;<span class="cl">List</span>&lt;<span class="cl">Product</span>&gt;&gt;(
+  future: _productsFuture,   <span class="cm">// the async operation to watch</span>
+  builder: (context, snapshot) {
+
+    <span class="cm">// Still loading</span>
+    <span class="kw">if</span> (snapshot.connectionState == <span class="cl">ConnectionState</span>.waiting) {
+      <span class="kw">return const</span> <span class="cl">Center</span>(child: <span class="cl">CircularProgressIndicator</span>());
+    }
+
+    <span class="cm">// Error occurred</span>
+    <span class="kw">if</span> (snapshot.hasError) {
+      <span class="kw">return</span> <span class="cl">Center</span>(child: <span class="cl">Text</span>(<span class="st">'Error: </span>${snapshot.error}<span class="st">'</span>));
+    }
+
+    <span class="cm">// Data ready — snapshot.data! is List&lt;Product&gt;</span>
+    <span class="kw">final</span> products = snapshot.data!;
+    <span class="kw">return</span> <span class="cl">ListView</span>.builder(
+      itemCount: products.length,
+      itemBuilder: (context, index) {
+        <span class="kw">return</span> <span class="cl">Text</span>(products[index].title);
+      },
+    );
+  },
+)
+</pre>
+
+<div class="warn">
+  <strong>Important:</strong> Store the Future in a variable (<code>late Future _productsFuture</code>)
+  and assign it in <code>initState()</code>. If you call <code>ProductService.getProducts()</code>
+  directly inside <code>build()</code>, it will make a new network request every time
+  the widget rebuilds — causing infinite loading loops.
+</div>
+
+<pre>
+<span class="cm">// ✅ Correct — Future created once in initState</span>
+<span class="kw">late</span> <span class="cl">Future</span>&lt;<span class="cl">List</span>&lt;<span class="cl">Product</span>&gt;&gt; _productsFuture;
+
+@override
+<span class="kw">void</span> initState() {
+  <span class="kw">super</span>.initState();
+  _productsFuture = <span class="cl">ProductService</span>.getProducts(); <span class="cm">// called once</span>
+}
+
+<span class="cm">// ❌ Wrong — new request on every rebuild</span>
+FutureBuilder(
+  future: <span class="cl">ProductService</span>.getProducts(), <span class="cm">// called every rebuild!</span>
+  ...
+)
+</pre>
+
+
+<!-- ══════ SECTION 8 ══════ -->
+<h2>8. Displaying Network Images</h2>
+
+<p>
+  Product thumbnails are URLs, not local assets. We use <code>Image.network()</code>
+  to load them from the internet.
+</p>
+
+<pre>
+<span class="cl">Image</span>.network(
+  product.thumbnail,   <span class="cm">// the URL string from the API</span>
+  width: <span class="num">90</span>,
+  height: <span class="num">90</span>,
+  fit: <span class="cl">BoxFit</span>.cover,
+  <span class="cm">// Show a placeholder while the image is downloading</span>
+  loadingBuilder: (context, child, progress) {
+    <span class="kw">if</span> (progress == <span class="kw">null</span>) <span class="kw">return</span> child; <span class="cm">// image fully loaded</span>
+    <span class="kw">return</span> <span class="cl">Container</span>(
+      width: <span class="num">90</span>, height: <span class="num">90</span>,
+      color: <span class="cl">Colors</span>.grey[<span class="num">200</span>],
+      child: <span class="kw">const</span> <span class="cl">Center</span>(child: <span class="cl">CircularProgressIndicator</span>(strokeWidth: <span class="num">2</span>)),
+    );
+  },
+)
+</pre>
+
+<table>
+  <tr><th>Widget</th><th>Source</th><th>Use when</th></tr>
+  <tr><td><code>Image.asset()</code></td><td>Local file in assets/</td><td>Logo, icons — shipped with the app</td></tr>
+  <tr><td><code>Image.network()</code></td><td>URL from the internet</td><td>Product images, user avatars from API</td></tr>
+</table>
+
+
+<!-- ══════ SECTION 9 ══════ -->
+<h2>9. Full Data Flow</h2>
+
+<div class="diagram">
+  initState() called<br>
+  &nbsp;&nbsp;&nbsp;↓<br>
+  _productsFuture = ProductService.getProducts()<br>
+  &nbsp;&nbsp;&nbsp;↓<br>
+  http.get('dummyjson.com/products') — waiting...<br>
+  FutureBuilder shows ⏳ CircularProgressIndicator<br>
+  &nbsp;&nbsp;&nbsp;↓ (response arrives)<br>
+  jsonDecode(response.body) → Map<br>
+  map['products'] → List of JSON maps<br>
+  Product.fromJson() → List&lt;Product&gt;<br>
+  &nbsp;&nbsp;&nbsp;↓<br>
+  FutureBuilder rebuilds → ListView shows products ✓
+</div>
+
+
+<!-- ══════ SECTION 10 ══════ -->
+<h2>10. Summary</h2>
+
+<table>
+  <tr><th>Concept</th><th>What We Did</th></tr>
+  <tr><td>http package</td><td>Added to pubspec.yaml, used <code>http.get()</code> to fetch data</td></tr>
+  <tr><td>Internet permission</td><td>Added to AndroidManifest.xml</td></tr>
+  <tr><td>JSON parsing</td><td>Used <code>jsonDecode()</code> to convert response body to a Map</td></tr>
+  <tr><td>Model class</td><td>Created <code>Product</code> with <code>fromJson()</code> factory constructor</td></tr>
+  <tr><td>Service class</td><td>Created <code>ProductService</code> to keep API logic out of screens</td></tr>
+  <tr><td>FutureBuilder</td><td>Handled loading / error / data states automatically</td></tr>
+  <tr><td>late Future</td><td>Stored Future in initState to avoid re-fetching on every rebuild</td></tr>
+  <tr><td>Image.network</td><td>Loaded product thumbnails from URL with a loading placeholder</td></tr>
+  <tr><td>Search screen</td><td>Triggered a new Future on button press to search by query</td></tr>
+</table>
+
+
+<!-- ══════ SECTION 11 ══════ -->
+<h2>11. Practice Tasks</h2>
+
+<ol>
+  <li>Add a <strong>refresh button</strong> to the Home tab that re-calls <code>ProductService.getProducts()</code> and updates <code>_productsFuture</code> with <code>setState()</code>.</li>
+  <li>Show the product <strong>description</strong> below the price in the product card.</li>
+  <li>In the Search screen, show a <strong>result count</strong> above the list (e.g. "5 results for 'phone'").</li>
+  <li>Tap a product card and navigate to a new <strong>ProductDetailScreen</strong> that shows the full product info (pass the <code>Product</code> object via constructor).</li>
+  <li><strong>Challenge:</strong> Fetch products by category — add a row of category buttons at the top of the Home tab. When tapped, call <code>dummyjson.com/products/category/&lt;name&gt;</code>.</li>
+</ol>
+
+<br>
+<hr style="border:none; border-top:1px solid #eee; margin: 24px 0;">
+<p style="text-align:center; color:#aaa; font-size:12px;">
+  BS Mobile Application Development &nbsp;·&nbsp; Lecture 10 &nbsp;·&nbsp; API Integration &amp; HTTP Requests
+  <br>To save as PDF: open in browser → File → Print → Save as PDF
+</p>
+
+</body>
+</html>
