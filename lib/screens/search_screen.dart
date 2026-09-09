@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_2/models/product.dart';
+import 'package:flutter_application_2/screens/product_detail_screen.dart';
 import 'package:flutter_application_2/services/product_service.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -95,6 +96,14 @@ class _SearchScreenState extends State<SearchScreen> {
                         return Card(
                           margin: const EdgeInsets.only(bottom: 10),
                           child: ListTile(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProductDetailScreen(product: product),
+                                ),
+                              );
+                            },
                             // Small thumbnail on the left
                             leading: ClipRRect(
                               borderRadius: BorderRadius.circular(6),

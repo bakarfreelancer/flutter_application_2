@@ -5,6 +5,7 @@ import 'package:flutter_application_2/models/product.dart';
 import 'package:flutter_application_2/screens/cart_screen.dart';
 import 'package:flutter_application_2/screens/profile.dart';
 import 'package:flutter_application_2/screens/search_screen.dart';
+import 'package:flutter_application_2/screens/product_detail_screen.dart';
 import 'package:flutter_application_2/services/product_service.dart';
 
 class MyApp extends StatefulWidget {
@@ -105,7 +106,18 @@ class _ProductCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
+      // InkWell adds a ripple effect on tap and handles the navigation
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ProductDetailScreen(product: product),
+            ),
+          );
+        },
+        child: Padding(
         padding: const EdgeInsets.all(10),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -177,6 +189,7 @@ class _ProductCard extends StatelessWidget {
           ],
         ),
       ),
-    );
+    ),   // InkWell
+    );   // Card
   }
 }

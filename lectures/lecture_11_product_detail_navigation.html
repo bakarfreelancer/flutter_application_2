@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 11 – Product Detail & Navigation</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px; color: #1a1a1a; background: #fff;
+      padding: 40px; max-width: 860px; margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800; color: white;
+      padding: 28px 32px; border-radius: 8px; margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+
+    .tip  { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+    .warn { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2.2; margin: 12px 0; text-align: center; color: #444; }
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    @media print {
+      body { padding: 20px; }
+      pre { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-header">
+  <div class="course">BS — Mobile Application Development &nbsp;|&nbsp; Flutter</div>
+  <h1>Lecture 11 &nbsp;–&nbsp; Product Detail Screen &amp; Navigation</h1>
+  <div class="meta">
+    Topics: Passing data between screens &nbsp;·&nbsp; Navigator.push &nbsp;·&nbsp;
+    InkWell &nbsp;·&nbsp; Detail screen layout &nbsp;·&nbsp; Back navigation
+  </div>
+</div>
+
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ol>
+    <li>Understand the difference between <strong>tab navigation</strong> and <strong>stack navigation</strong>.</li>
+    <li>Pass a data object from one screen to another via a <strong>constructor parameter</strong>.</li>
+    <li>Use <strong>InkWell</strong> to make any widget tappable with a ripple effect.</li>
+    <li>Use <strong>Navigator.push</strong> to open a detail screen.</li>
+    <li>Understand how the <strong>back button</strong> works automatically with stack navigation.</li>
+    <li>Build a complete <strong>product detail screen</strong> layout.</li>
+  </ol>
+</div>
+
+
+<!-- ══════ SECTION 1 ══════ -->
+<h2>1. Tab Navigation vs Stack Navigation — Recap</h2>
+
+<table>
+  <tr><th></th><th>Tab Navigation (IndexedStack)</th><th>Stack Navigation (Navigator.push)</th></tr>
+  <tr><td><strong>Direction</strong></td><td>Sideways — between sibling screens</td><td>Forward — a new screen on top</td></tr>
+  <tr><td><strong>Back button</strong></td><td>No — tabs are siblings</td><td>Yes — automatically shown in AppBar</td></tr>
+  <tr><td><strong>Use case</strong></td><td>Home / Search / Cart / Profile</td><td>Product list → Product detail</td></tr>
+  <tr><td><strong>Widget</strong></td><td><code>IndexedStack</code></td><td><code>Navigator.push</code></td></tr>
+</table>
+
+<div class="diagram">
+  Home (tab) ──── Search (tab) ──── Cart (tab)<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;↓ Navigator.push<br>
+  ProductDetailScreen &nbsp;&nbsp;← new screen on top of the stack<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;↓ Navigator.pop (back button)<br>
+  Home (tab) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← returns here
+</div>
+
+
+<!-- ══════ SECTION 2 ══════ -->
+<h2>2. Passing Data to Another Screen</h2>
+
+<p>
+  When navigating to a detail screen, we need to send the selected product along.
+  The simplest way is to pass it through the screen's <strong>constructor</strong>.
+</p>
+
+<pre>
+<span class="cm">// ProductDetailScreen declares a required constructor parameter</span>
+<span class="kw">class</span> <span class="cl">ProductDetailScreen</span> <span class="kw">extends</span> <span class="cl">StatelessWidget</span> {
+  <span class="kw">final</span> <span class="cl">Product</span> product; <span class="cm">// ← receives the product from the caller</span>
+
+  <span class="kw">const</span> <span class="cl">ProductDetailScreen</span>({<span class="kw">super</span>.key, <span class="kw">required this</span>.product});
+  ...
+}
+
+<span class="cm">// Caller passes the product when navigating</span>
+<span class="cl">Navigator</span>.push(
+  context,
+  <span class="cl">MaterialPageRoute</span>(
+    builder: (_) =&gt; <span class="cl">ProductDetailScreen</span>(product: product), <span class="cm">// ← pass it here</span>
+  ),
+);
+</pre>
+
+<div class="tip">
+  <strong>No API call needed on the detail screen.</strong> The product object is
+  already in memory — we just pass it along. The detail screen reads from it directly.
+</div>
+
+
+<!-- ══════ SECTION 3 ══════ -->
+<h2>3. InkWell — Making Any Widget Tappable</h2>
+
+<p>
+  <code>InkWell</code> is a widget that wraps any child and makes it respond to taps.
+  It shows a <strong>ripple (ink splash) effect</strong> when tapped — the standard
+  Material Design touch feedback.
+</p>
+
+<pre>
+<span class="cm">// Wrapping a Card with InkWell to make it tappable</span>
+<span class="cl">Card</span>(
+  child: <span class="cl">InkWell</span>(
+    borderRadius: <span class="cl">BorderRadius</span>.circular(<span class="num">12</span>), <span class="cm">// ripple follows card shape</span>
+    onTap: () {
+      <span class="cl">Navigator</span>.push(
+        context,
+        <span class="cl">MaterialPageRoute</span>(
+          builder: (_) =&gt; <span class="cl">ProductDetailScreen</span>(product: product),
+        ),
+      );
+    },
+    child: <span class="cl">Padding</span>( ... ), <span class="cm">// the card content</span>
+  ),
+)
+</pre>
+
+<h3>InkWell vs GestureDetector</h3>
+<table>
+  <tr><th></th><th>InkWell</th><th>GestureDetector</th></tr>
+  <tr><td>Ripple effect</td><td>Yes ✓</td><td>No</td></tr>
+  <tr><td>Material feel</td><td>Yes ✓</td><td>No</td></tr>
+  <tr><td>Use when</td><td>Inside Material widgets (Card, Container)</td><td>Custom gestures (swipe, long press, drag)</td></tr>
+</table>
+
+<div class="tip">
+  <strong>ListTile already has <code>onTap</code></strong> built in — no need to wrap
+  it with InkWell. Just set <code>ListTile(onTap: () { ... })</code> directly.
+</div>
+
+
+<!-- ══════ SECTION 4 ══════ -->
+<h2>4. ProductDetailScreen Layout</h2>
+
+<div class="diagram">
+  ┌──────────────────────────────────┐<br>
+  │ ← Product Title &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; AppBar    │<br>
+  ├──────────────────────────────────┤<br>
+  │                                  │<br>
+  │   [Full-width product image]     │  280px tall<br>
+  │                                  │<br>
+  ├──────────────────────────────────┤<br>
+  │  BEAUTY  ← category badge        │<br>
+  │  Essence Mascara...  ← title     │<br>
+  │  $9.99    ⭐ 4.7 / 5            │<br>
+  │                                  │<br>
+  │  Description                     │<br>
+  │  Lorem ipsum dolor...            │<br>
+  │                                  │<br>
+  │  [ 🛒 Add to Cart ]              │<br>
+  └──────────────────────────────────┘
+</div>
+
+<span class="filepath">lib/screens/product_detail_screen.dart — structure</span>
+<pre>
+<span class="kw">class</span> <span class="cl">ProductDetailScreen</span> <span class="kw">extends</span> <span class="cl">StatelessWidget</span> {
+  <span class="kw">final</span> <span class="cl">Product</span> product;
+  <span class="kw">const</span> <span class="cl">ProductDetailScreen</span>({<span class="kw">super</span>.key, <span class="kw">required this</span>.product});
+
+  @override
+  <span class="cl">Widget</span> build(<span class="cl">BuildContext</span> context) {
+    <span class="kw">return</span> <span class="cl">Scaffold</span>(
+      <span class="cm">// AppBar shows back button automatically — no code needed</span>
+      appBar: <span class="cl">AppBar</span>(
+        title: <span class="cl">Text</span>(product.title, maxLines: <span class="num">1</span>, overflow: <span class="cl">TextOverflow</span>.ellipsis),
+        backgroundColor: <span class="cl">Colors</span>.orangeAccent,
+        foregroundColor: <span class="cl">Colors</span>.white,
+      ),
+
+      body: <span class="cl">SingleChildScrollView</span>(
+        child: <span class="cl">Column</span>(
+          children: [
+            <span class="cm">// 1. Full-width image</span>
+            <span class="cl">SizedBox</span>(
+              width: <span class="kw">double</span>.infinity, height: <span class="num">280</span>,
+              child: <span class="cl">Image</span>.network(product.thumbnail, fit: <span class="cl">BoxFit</span>.cover),
+            ),
+
+            <span class="cl">Padding</span>(
+              padding: <span class="kw">const</span> <span class="cl">EdgeInsets</span>.all(<span class="num">16</span>),
+              child: <span class="cl">Column</span>(
+                crossAxisAlignment: <span class="cl">CrossAxisAlignment</span>.start,
+                children: [
+                  <span class="cm">// 2. Category badge</span>
+                  <span class="cl">Container</span>(
+                    padding: <span class="kw">const</span> <span class="cl">EdgeInsets</span>.symmetric(horizontal: <span class="num">10</span>, vertical: <span class="num">4</span>),
+                    decoration: <span class="cl">BoxDecoration</span>(
+                      color: <span class="cl">Colors</span>.orangeAccent.withValues(alpha: <span class="num">0.15</span>),
+                      borderRadius: <span class="cl">BorderRadius</span>.circular(<span class="num">20</span>),
+                    ),
+                    child: <span class="cl">Text</span>(product.category.toUpperCase()),
+                  ),
+                  <span class="cm">// 3. Title</span>
+                  <span class="cl">Text</span>(product.title, style: <span class="cl">TextStyle</span>(fontSize: <span class="num">22</span>, fontWeight: <span class="cl">FontWeight</span>.bold)),
+                  <span class="cm">// 4. Price + Rating row</span>
+                  <span class="cl">Row</span>(
+                    mainAxisAlignment: <span class="cl">MainAxisAlignment</span>.spaceBetween,
+                    children: [
+                      <span class="cl">Text</span>(<span class="st">'\$</span>${product.price}<span class="st">'</span>),
+                      <span class="cl">Text</span>(<span class="st">'⭐ </span>${product.rating}<span class="st">'</span>),
+                    ],
+                  ),
+                  <span class="cm">// 5. Description</span>
+                  <span class="cl">Text</span>(product.description),
+                  <span class="cm">// 6. Add to Cart button</span>
+                  <span class="cl">ElevatedButton</span>.icon(
+                    icon: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.shopping_cart_outlined),
+                    label: <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Add to Cart'</span>),
+                    onPressed: () { ... },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+</pre>
+
+
+<!-- ══════ SECTION 5 ══════ -->
+<h2>5. How the Back Button Works Automatically</h2>
+
+<p>
+  When you use <code>Navigator.push</code>, Flutter adds the new screen to a
+  <strong>navigation stack</strong>. The AppBar automatically shows a back arrow
+  (←) at the top left. Tapping it calls <code>Navigator.pop(context)</code>
+  which removes the top screen and returns to the previous one.
+</p>
+
+<div class="diagram">
+  Before tap: &nbsp; [ HomeTab ] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ← stack has 1 screen<br><br>
+  After tap: &nbsp;&nbsp; [ HomeTab | ProductDetailScreen ] &nbsp;← stack has 2 screens<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↑ user sees this one<br><br>
+  After back: &nbsp;[ HomeTab ] &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ← pop removed the detail screen
+</div>
+
+<pre>
+<span class="cm">// You can also call pop manually from a button</span>
+<span class="cl">ElevatedButton</span>(
+  onPressed: () =&gt; <span class="cl">Navigator</span>.pop(context), <span class="cm">// same as the back button</span>
+  child: <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Go Back'</span>),
+)
+</pre>
+
+
+<!-- ══════ SECTION 6 ══════ -->
+<h2>6. Where Navigation is Added — Files Changed</h2>
+
+<span class="filepath">lib/screens/home.dart — _ProductCard</span>
+<pre>
+<span class="cm">// Card wrapped with InkWell → tapping opens ProductDetailScreen</span>
+<span class="cl">Card</span>(
+  child: <span class="cl">InkWell</span>(
+    borderRadius: <span class="cl">BorderRadius</span>.circular(<span class="num">12</span>),
+    onTap: () {
+      <span class="cl">Navigator</span>.push(context,
+        <span class="cl">MaterialPageRoute</span>(builder: (_) =&gt; <span class="cl">ProductDetailScreen</span>(product: product)));
+    },
+    child: <span class="cl">Padding</span>( <span class="cm">/* card content */</span> ),
+  ),
+)
+</pre>
+
+<span class="filepath">lib/screens/search_screen.dart — ListTile</span>
+<pre>
+<span class="cm">// ListTile has onTap built in — no InkWell needed</span>
+<span class="cl">ListTile</span>(
+  onTap: () {
+    <span class="cl">Navigator</span>.push(context,
+      <span class="cl">MaterialPageRoute</span>(builder: (_) =&gt; <span class="cl">ProductDetailScreen</span>(product: product)));
+  },
+  leading: ...,
+  title: ...,
+)
+</pre>
+
+
+<!-- ══════ SECTION 7 ══════ -->
+<h2>7. withValues(alpha:) — Replacing Deprecated withOpacity()</h2>
+
+<p>
+  When creating a semi-transparent color for the category badge, the old
+  <code>withOpacity()</code> method is now deprecated in Flutter. Use
+  <code>withValues(alpha:)</code> instead — it works the same way but with better precision.
+</p>
+
+<pre>
+<span class="cm">// ❌ Old — deprecated</span>
+color: <span class="cl">Colors</span>.orangeAccent.withOpacity(<span class="num">0.15</span>)
+
+<span class="cm">// ✅ New — use this</span>
+color: <span class="cl">Colors</span>.orangeAccent.withValues(alpha: <span class="num">0.15</span>)
+</pre>
+
+
+<!-- ══════ SECTION 8 ══════ -->
+<h2>8. Summary</h2>
+
+<table>
+  <tr><th>Concept</th><th>What We Did</th></tr>
+  <tr><td>Data passing</td><td>Passed <code>Product</code> object to detail screen via constructor</td></tr>
+  <tr><td>InkWell</td><td>Wrapped <code>Card</code> to add tap + ripple effect</td></tr>
+  <tr><td>ListTile onTap</td><td>Used the built-in <code>onTap</code> on search results</td></tr>
+  <tr><td>Navigator.push</td><td>Opened detail screen on top of home screen</td></tr>
+  <tr><td>Back button</td><td>Provided automatically by Flutter when using Navigator.push</td></tr>
+  <tr><td>Navigator.pop</td><td>How Flutter removes the top screen and returns to previous</td></tr>
+  <tr><td>withValues(alpha:)</td><td>Modern replacement for deprecated <code>withOpacity()</code></td></tr>
+</table>
+
+
+<!-- ══════ SECTION 9 ══════ -->
+<h2>9. Practice Tasks</h2>
+
+<ol>
+  <li>Add a <strong>share icon</strong> in the detail screen's AppBar actions using <code>Icons.share</code> — show a SnackBar when tapped.</li>
+  <li>Show the product <strong>id</strong> as a small grey text below the title (e.g. "Product #1").</li>
+  <li>Add a <strong>favourite button</strong> (<code>Icons.favorite_border</code>) on the product card. When tapped, toggle it to <code>Icons.favorite</code> in red — without opening the detail screen (hint: use <code>GestureDetector</code> on just the icon, not the whole card).</li>
+  <li><strong>Challenge:</strong> When the "Add to Cart" button is tapped on the detail screen, navigate back to the Cart tab. Hint: <code>Navigator.pop</code> returns to the previous screen, but to switch tabs you need to pass a callback or use a shared state.</li>
+</ol>
+
+<br>
+<hr style="border:none; border-top:1px solid #eee; margin: 24px 0;">
+<p style="text-align:center; color:#aaa; font-size:12px;">
+  BS Mobile Application Development &nbsp;·&nbsp; Lecture 11 &nbsp;·&nbsp; Product Detail Screen &amp; Navigation
+  <br>To save as PDF: open in browser → File → Print → Save as PDF
+</p>
+
+</body>
+</html>
