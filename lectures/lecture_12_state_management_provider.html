@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 12 – State Management with Provider</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px; color: #1a1a1a; background: #fff;
+      padding: 40px; max-width: 860px; margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800; color: white;
+      padding: 28px 32px; border-radius: 8px; margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+    .fn  { color: #f9e2af; }
+
+    .tip  { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+    .warn { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+    .success { background: #e8f5e9; border-left: 4px solid #388e3c; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .success strong { color: #2e7d32; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2.2; margin: 12px 0; text-align: center; color: #444; }
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+    .box { background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; padding: 14px; font-size: 13px; }
+    .box h4 { margin-bottom: 8px; color: #444; }
+    .bad  { border-top: 3px solid #e53935; }
+    .good { border-top: 3px solid #43a047; }
+
+    @media print {
+      body { padding: 20px; }
+      pre { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  HEADER                                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <div class="course">BS — MOBILE APPLICATION DEVELOPMENT · FLUTTER</div>
+  <h1>Lecture 12 — State Management with Provider</h1>
+  <div class="meta">Topic: Sharing data across screens · Package: provider ^6.1.2</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  OBJECTIVES                                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ul>
+    <li>Understand WHY <code>setState</code> is not enough for real apps</li>
+    <li>Learn what state management is and when you need it</li>
+    <li>Create a <code>ChangeNotifier</code> class (CartProvider)</li>
+    <li>Provide state to the whole app using <code>ChangeNotifierProvider</code></li>
+    <li>Read state with <code>Consumer</code> and <code>context.read()</code></li>
+    <li>Connect the "Add to Cart" button to the cart screen using Provider</li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  1. THE PROBLEM WITH setState                              -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>1. The Problem — Why setState Is Not Enough</h2>
+
+<p>In previous lectures, we used <code>setState()</code> to update the UI. That works great when the data only belongs to <strong>one screen</strong>. But what happens when two screens need to share the same data?</p>
+
+<p>Think about our shopping app:</p>
+<ul>
+  <li>The user taps <strong>"Add to Cart"</strong> on the Product Detail screen</li>
+  <li>They go back and tap the <strong>Cart tab</strong></li>
+  <li>The cart should show the product they just added</li>
+</ul>
+
+<p>With <code>setState</code>, each screen has its own separate data. There is no way for the Product Detail screen to tell the Cart screen: <em>"hey, I added something!"</em></p>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Problem with setState</h4>
+    <ul>
+      <li>Cart data lives inside CartScreen only</li>
+      <li>ProductDetailScreen cannot access it</li>
+      <li>Adding a product does nothing visible in Cart</li>
+      <li>Data is lost when screen rebuilds</li>
+    </ul>
+  </div>
+  <div class="box good">
+    <h4>✅ Solution with Provider</h4>
+    <ul>
+      <li>Cart data lives in ONE central place</li>
+      <li>Any screen can read or modify it</li>
+      <li>All screens update automatically</li>
+      <li>Data persists as long as the app runs</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  2. WHAT IS STATE MANAGEMENT?                              -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>2. What Is State Management?</h2>
+
+<p><strong>State</strong> = data that can change and that the UI needs to display.<br>
+<strong>State management</strong> = a way to store that data in one place and share it across the app.</p>
+
+<p>Imagine a <strong>whiteboard</strong> in the classroom:</p>
+<ul>
+  <li>Anyone can read what is written on it</li>
+  <li>Anyone can erase and write new things</li>
+  <li>Everyone in the room sees the update immediately</li>
+</ul>
+<p><code>CartProvider</code> is our whiteboard. All screens look at it. When one screen changes it, everyone else updates.</p>
+
+<div class="diagram">
+  main.dart<br>
+  └── <strong>ChangeNotifierProvider (CartProvider)</strong> ← the whiteboard<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── HomeScreen<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── ProductDetailScreen &nbsp;← writes to whiteboard (addProduct)<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;├── CartScreen &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;← reads from whiteboard (items, total)<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;└── ProfileScreen
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  3. SETUP — ADD THE PACKAGE                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>3. Setup — Add the Provider Package</h2>
+
+<p>Open <code>pubspec.yaml</code> and add the provider dependency:</p>
+
+<span class="filepath">pubspec.yaml</span>
+<pre>
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_preferences: ^2.3.0
+  http: ^1.2.0
+  <span class="st">provider: ^6.1.2</span>     <span class="cm"># &lt;-- add this line</span>
+</pre>
+
+<p>Then run in the terminal:</p>
+<pre>
+flutter pub get
+</pre>
+
+<div class="tip"><strong>Tip:</strong> <code>flutter pub get</code> downloads the package and makes it available in your project. You must run this every time you add a new dependency.</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  4. STEP 1 — CREATE THE CART PROVIDER                     -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>4. Step 1 — Create the CartProvider</h2>
+
+<p>Create a new file: <code>lib/providers/cart_provider.dart</code></p>
+<p>This class holds all cart data and the logic to change it.</p>
+
+<span class="filepath">lib/providers/cart_provider.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter/material.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/models/product.dart'</span>;
+
+<span class="cm">// CartItem holds one product + how many the user wants</span>
+<span class="kw">class</span> <span class="cl">CartItem</span> {
+  <span class="kw">final</span> <span class="cl">Product</span> product;
+  <span class="kw">int</span> quantity;
+
+  <span class="cl">CartItem</span>({<span class="kw">required this</span>.product, <span class="kw">this</span>.quantity = <span class="num">1</span>});
+}
+
+<span class="cm">// CartProvider is the "brain" of the cart.
+// It extends ChangeNotifier — this gives it the ability to
+// notify (inform) widgets whenever something changes.</span>
+<span class="kw">class</span> <span class="cl">CartProvider</span> <span class="kw">extends</span> <span class="cl">ChangeNotifier</span> {
+
+  <span class="cm">// Private list — only this class can modify it</span>
+  <span class="kw">final</span> <span class="cl">List</span>&lt;<span class="cl">CartItem</span>&gt; _items = [];
+
+  <span class="cm">// Public getter — widgets can read but not change the list</span>
+  <span class="cl">List</span>&lt;<span class="cl">CartItem</span>&gt; <span class="kw">get</span> items =&gt; <span class="cl">List</span>.unmodifiable(_items);
+
+  <span class="cm">// Total number of products (for the cart badge)</span>
+  <span class="kw">int</span> <span class="kw">get</span> totalItems =&gt; _items.fold(<span class="num">0</span>, (sum, item) =&gt; sum + item.quantity);
+
+  <span class="cm">// Total price</span>
+  <span class="kw">double</span> <span class="kw">get</span> totalPrice =&gt;
+      _items.fold(<span class="num">0</span>, (sum, item) =&gt; sum + item.product.price * item.quantity);
+
+  <span class="cm">// Add a product. If it is already in the cart, increase quantity.</span>
+  <span class="kw">void</span> <span class="fn">addProduct</span>(<span class="cl">Product</span> product) {
+    <span class="kw">final</span> index = _items.indexWhere((item) =&gt; item.product.id == product.id);
+
+    <span class="kw">if</span> (index &gt;= <span class="num">0</span>) {
+      _items[index].quantity++;   <span class="cm">// already in cart → increase quantity</span>
+    } <span class="kw">else</span> {
+      _items.add(<span class="cl">CartItem</span>(product: product));  <span class="cm">// new → add it</span>
+    }
+
+    <span class="fn">notifyListeners</span>();  <span class="cm">// 🔔 tell all widgets to rebuild</span>
+  }
+
+  <span class="cm">// Remove a product completely</span>
+  <span class="kw">void</span> <span class="fn">removeProduct</span>(<span class="kw">int</span> productId) {
+    _items.removeWhere((item) =&gt; item.product.id == productId);
+    <span class="fn">notifyListeners</span>();
+  }
+
+  <span class="cm">// Decrease quantity by 1, remove if it reaches 0</span>
+  <span class="kw">void</span> <span class="fn">decreaseQuantity</span>(<span class="kw">int</span> productId) {
+    <span class="kw">final</span> index = _items.indexWhere((item) =&gt; item.product.id == productId);
+    <span class="kw">if</span> (index &gt;= <span class="num">0</span>) {
+      <span class="kw">if</span> (_items[index].quantity &gt; <span class="num">1</span>) {
+        _items[index].quantity--;
+      } <span class="kw">else</span> {
+        _items.removeAt(index);
+      }
+      <span class="fn">notifyListeners</span>();
+    }
+  }
+
+  <span class="cm">// Clear all items</span>
+  <span class="kw">void</span> <span class="fn">clearCart</span>() {
+    _items.clear();
+    <span class="fn">notifyListeners</span>();
+  }
+}
+</pre>
+
+<div class="tip">
+  <strong>Key Concept:</strong> <code>notifyListeners()</code> is the most important line.
+  It is like sending a broadcast: <em>"Hey everyone, the cart changed! Please update your UI."</em>
+  Any widget that is listening will automatically rebuild.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  5. STEP 2 — PROVIDE TO THE WHOLE APP                     -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>5. Step 2 — Provide CartProvider to the Whole App</h2>
+
+<p>For any screen to access CartProvider, we must place it <strong>above</strong> <code>MaterialApp</code> in <code>main.dart</code>. Think of it like placing the whiteboard at the entrance of the building — everyone inside can see it.</p>
+
+<span class="filepath">lib/main.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter/material.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:provider/provider.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/providers/cart_provider.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/screens/splash.dart'</span>;
+
+<span class="kw">void</span> <span class="fn">main</span>() {
+  <span class="fn">runApp</span>(
+    <span class="cm">// ChangeNotifierProvider creates ONE CartProvider and makes it
+    // available to every widget in the app below it.</span>
+    <span class="cl">ChangeNotifierProvider</span>(
+      create: (context) =&gt; <span class="cl">CartProvider</span>(),
+      child: <span class="cl">MaterialApp</span>(
+        title: <span class="st">'My App'</span>,
+        debugShowCheckedModeBanner: <span class="kw">false</span>,
+        home: <span class="cl">SplashScreen</span>(),
+      ),
+    ),
+  );
+}
+</pre>
+
+<div class="warn">
+  <strong>Common Mistake:</strong> If you place <code>ChangeNotifierProvider</code> inside a screen
+  instead of above <code>MaterialApp</code>, other screens won't be able to access it and you
+  will get an error: <em>"Could not find the correct Provider"</em>.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  6. STEP 3 — READING STATE WITH Consumer                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>6. Step 3 — Reading State With Consumer</h2>
+
+<p>There are two ways to access a Provider from a widget:</p>
+
+<table>
+  <tr>
+    <th>Method</th>
+    <th>When to Use</th>
+    <th>Rebuilds Widget?</th>
+  </tr>
+  <tr>
+    <td><code>Consumer&lt;CartProvider&gt;</code></td>
+    <td>When you need to <strong>display</strong> data from the provider</td>
+    <td>Yes — rebuilds whenever notifyListeners() is called</td>
+  </tr>
+  <tr>
+    <td><code>context.read&lt;CartProvider&gt;()</code></td>
+    <td>When you just want to <strong>call a method</strong> (like addProduct)</td>
+    <td>No — just calls the method, doesn't listen</td>
+  </tr>
+</table>
+
+<h3>Using Consumer in cart_screen.dart</h3>
+
+<span class="filepath">lib/screens/cart_screen.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:provider/provider.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/providers/cart_provider.dart'</span>;
+
+<span class="kw">class</span> <span class="cl">CartScreen</span> <span class="kw">extends</span> <span class="cl">StatelessWidget</span> {  <span class="cm">// no longer StatefulWidget!</span>
+  <span class="kw">const</span> <span class="cl">CartScreen</span>({<span class="kw">super</span>.key});
+
+  <span class="kw">@override</span>
+  <span class="cl">Widget</span> <span class="fn">build</span>(<span class="cl">BuildContext</span> context) {
+    <span class="cm">// Consumer listens to CartProvider.
+    // The 'cart' variable is the CartProvider instance.</span>
+    <span class="kw">return</span> <span class="cl">Consumer</span>&lt;<span class="cl">CartProvider</span>&gt;(
+      builder: (context, cart, child) {
+        <span class="kw">return</span> <span class="cl">Column</span>(
+          children: [
+            <span class="cl">Expanded</span>(
+              child: cart.items.isEmpty
+                  ? <span class="kw">const</span> <span class="cl">Center</span>(child: <span class="cl">Text</span>(<span class="st">'Your cart is empty'</span>))
+                  : <span class="cl">ListView</span>.builder(
+                      itemCount: cart.items.length,
+                      itemBuilder: (context, index) {
+                        <span class="kw">final</span> cartItem = cart.items[index];
+                        <span class="kw">return</span> <span class="cl">Card</span>(
+                          child: <span class="cl">ListTile</span>(
+                            title: <span class="cl">Text</span>(cartItem.product.title),
+                            subtitle: <span class="cl">Text</span>(<span class="st">'\$</span>${cartItem.product.price}<span class="st">'</span>),
+                            trailing: <span class="cl">Row</span>(
+                              mainAxisSize: <span class="cl">MainAxisSize</span>.min,
+                              children: [
+                                <span class="cl">IconButton</span>(
+                                  icon: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.remove_circle_outline),
+                                  onPressed: () {
+                                    <span class="cm">// context.read() for one-time actions</span>
+                                    context.read&lt;<span class="cl">CartProvider</span>&gt;()
+                                        .decreaseQuantity(cartItem.product.id);
+                                  },
+                                ),
+                                <span class="cl">Text</span>(<span class="st">'</span>${cartItem.quantity}<span class="st">'</span>),
+                                <span class="cl">IconButton</span>(
+                                  icon: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.add_circle_outline),
+                                  onPressed: () {
+                                    context.read&lt;<span class="cl">CartProvider</span>&gt;()
+                                        .addProduct(cartItem.product);
+                                  },
+                                ),
+                                <span class="cl">IconButton</span>(
+                                  icon: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.delete_outline,
+                                      color: <span class="cl">Colors</span>.red),
+                                  onPressed: () {
+                                    context.read&lt;<span class="cl">CartProvider</span>&gt;()
+                                        .removeProduct(cartItem.product.id);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+
+            <span class="cm">// Show total and checkout button only if cart has items</span>
+            <span class="kw">if</span> (cart.items.isNotEmpty)
+              <span class="cl">Container</span>(
+                padding: <span class="kw">const</span> <span class="cl">EdgeInsets</span>.all(<span class="num">16</span>),
+                child: <span class="cl">Row</span>(
+                  mainAxisAlignment: <span class="cl">MainAxisAlignment</span>.spaceBetween,
+                  children: [
+                    <span class="cl">Text</span>(<span class="st">'Total: \$</span>${cart.totalPrice.toStringAsFixed(<span class="num">2</span>)}<span class="st">'</span>,
+                        style: <span class="kw">const</span> <span class="cl">TextStyle</span>(fontWeight: <span class="cl">FontWeight</span>.bold)),
+                    <span class="cl">ElevatedButton</span>(
+                      onPressed: () =&gt; context.read&lt;<span class="cl">CartProvider</span>&gt;().clearCart(),
+                      child: <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Checkout'</span>),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+</pre>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  7. STEP 4 — WRITING STATE FROM PRODUCT DETAIL            -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>7. Step 4 — Writing State From ProductDetailScreen</h2>
+
+<p>Now we connect the "Add to Cart" button. When it is tapped, we call <code>context.read&lt;CartProvider&gt;().addProduct(product)</code>. This updates the cart, and <code>notifyListeners()</code> makes the Cart screen update automatically.</p>
+
+<span class="filepath">lib/screens/product_detail_screen.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:provider/provider.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/providers/cart_provider.dart'</span>;
+
+<span class="cm">// Inside the build method, in the Add to Cart button:</span>
+
+<span class="cl">Consumer</span>&lt;<span class="cl">CartProvider</span>&gt;(
+  builder: (context, cart, child) {
+    <span class="cm">// Check if this product is already in the cart</span>
+    <span class="kw">final</span> alreadyInCart =
+        cart.items.any((item) =&gt; item.product.id == product.id);
+
+    <span class="kw">return</span> <span class="cl">ElevatedButton</span>.icon(
+      style: <span class="cl">ElevatedButton</span>.styleFrom(
+        <span class="cm">// Button turns green if product is already in cart</span>
+        backgroundColor: alreadyInCart ? <span class="cl">Colors</span>.green : <span class="cl">Colors</span>.orangeAccent,
+        foregroundColor: <span class="cl">Colors</span>.white,
+      ),
+      icon: <span class="cl">Icon</span>(alreadyInCart ? <span class="cl">Icons</span>.check : <span class="cl">Icons</span>.shopping_cart_outlined),
+      label: <span class="cl">Text</span>(alreadyInCart ? <span class="st">'Added to Cart'</span> : <span class="st">'Add to Cart'</span>),
+      onPressed: () {
+        <span class="cm">// This is all it takes — Provider does the rest</span>
+        context.read&lt;<span class="cl">CartProvider</span>&gt;().addProduct(product);
+      },
+    );
+  },
+),
+</pre>
+
+<div class="success">
+  <strong>Result:</strong> When the user taps "Add to Cart", the button instantly turns green
+  and shows "Added to Cart". When the user navigates to the Cart tab, the product is already
+  there — no extra code needed.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  8. HOW IT ALL CONNECTS                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>8. How It All Connects — The Full Flow</h2>
+
+<div class="diagram">
+  User taps "Add to Cart" on ProductDetailScreen<br>
+  ↓<br>
+  <code>context.read&lt;CartProvider&gt;().addProduct(product)</code><br>
+  ↓<br>
+  CartProvider adds item to <code>_items</code> list<br>
+  ↓<br>
+  <code>notifyListeners()</code> is called<br>
+  ↓<br>
+  All <code>Consumer&lt;CartProvider&gt;</code> widgets rebuild<br>
+  ↓<br>
+  CartScreen shows the new item ✅ &nbsp;&nbsp; Button turns green ✅
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  9. QUICK REFERENCE                                        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>9. Quick Reference — Provider Cheat Sheet</h2>
+
+<table>
+  <tr>
+    <th>What You Want to Do</th>
+    <th>Code</th>
+  </tr>
+  <tr>
+    <td>Create the provider (once, in main.dart)</td>
+    <td><code>ChangeNotifierProvider(create: (_) =&gt; CartProvider(), child: ...)</code></td>
+  </tr>
+  <tr>
+    <td>Display data and auto-rebuild</td>
+    <td><code>Consumer&lt;CartProvider&gt;(builder: (ctx, cart, _) { ... })</code></td>
+  </tr>
+  <tr>
+    <td>Call a method (one-time action)</td>
+    <td><code>context.read&lt;CartProvider&gt;().addProduct(p)</code></td>
+  </tr>
+  <tr>
+    <td>Read a value (rebuilds widget)</td>
+    <td><code>context.watch&lt;CartProvider&gt;().totalItems</code></td>
+  </tr>
+  <tr>
+    <td>Notify listeners after change</td>
+    <td><code>notifyListeners()</code> inside CartProvider</td>
+  </tr>
+</table>
+
+<div class="tip">
+  <strong>Rule of Thumb:</strong>
+  Use <code>Consumer</code> or <code>context.watch()</code> when you want the widget to <em>rebuild</em>.
+  Use <code>context.read()</code> inside <code>onPressed</code> or other callbacks when you just want to call a method.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  10. WHAT WE CHANGED AND WHY                              -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>10. Summary of Changes Made</h2>
+
+<table>
+  <tr>
+    <th>File</th>
+    <th>What Changed</th>
+    <th>Why</th>
+  </tr>
+  <tr>
+    <td><code>pubspec.yaml</code></td>
+    <td>Added <code>provider: ^6.1.2</code></td>
+    <td>Install the Provider package</td>
+  </tr>
+  <tr>
+    <td><code>lib/providers/cart_provider.dart</code></td>
+    <td>New file — CartItem + CartProvider</td>
+    <td>Central place to store all cart data</td>
+  </tr>
+  <tr>
+    <td><code>lib/main.dart</code></td>
+    <td>Wrapped app with ChangeNotifierProvider</td>
+    <td>Makes CartProvider available to all screens</td>
+  </tr>
+  <tr>
+    <td><code>lib/screens/cart_screen.dart</code></td>
+    <td>Replaced local list with Consumer</td>
+    <td>Now shows real cart items from provider</td>
+  </tr>
+  <tr>
+    <td><code>lib/screens/product_detail_screen.dart</code></td>
+    <td>Connected "Add to Cart" button to provider</td>
+    <td>Button actually adds to the shared cart now</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  PRACTICE TASK                                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>Practice Task</h2>
+<ol>
+  <li>Run the app and open any product detail screen</li>
+  <li>Tap "Add to Cart" — the button should turn green and say "Added to Cart"</li>
+  <li>Go back and tap the Cart tab — the product should be there</li>
+  <li>Try adding the same product again — the quantity should increase</li>
+  <li><strong>Challenge:</strong> Show the cart item count as a badge on the Cart tab in the bottom navigation bar</li>
+</ol>
+
+</body>
+</html>

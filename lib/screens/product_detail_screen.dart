@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_application_2/models/product.dart';
+import 'package:flutter_application_2/providers/cart_provider.dart';
 
 // ProductDetailScreen is a separate screen pushed on top of the home screen.
 // It receives a Product object from the previous screen via its constructor.
@@ -21,6 +23,36 @@ class ProductDetailScreen extends StatelessWidget {
         ),
         backgroundColor: Colors.orangeAccent,
         foregroundColor: Colors.white,
+        actions: [
+          // Show cart item count in the AppBar
+          // Consumer rebuilds only this badge when cart changes
+          Consumer<CartProvider>(
+            builder: (context, cart, child) {
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.shopping_cart_outlined),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  if (cart.totalItems > 0)
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: CircleAvatar(
+                        radius: 8,
+                        backgroundColor: Colors.red,
+                        child: Text(
+                          '${cart.totalItems}',
+                          style: const TextStyle(fontSize: 10, color: Colors.white),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
 
       body: SingleChildScrollView(
@@ -125,27 +157,50 @@ class ProductDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 32),
 
-                  // Add to Cart button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.orangeAccent,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                      icon: const Icon(Icons.shopping_cart_outlined),
-                      label: const Text(
-                        'Add to Cart',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      onPressed: () {
-                        // Will be connected to cart in a future lecture
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('${product.title} added to cart!')),
-                        );
-                      },
-                    ),
+                  // ── Add to Cart button ──────────────────────────────
+                  // Consumer watches CartProvider so the button label
+                  // updates immediately when this product is added.
+                  Consumer<CartProvider>(
+                    builder: (context, cart, child) {
+                      // Check if this product is already in the cart
+                      final alreadyInCart = cart.items
+                          .any((item) => item.product.id == product.id);
+
+                      return SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: alreadyInCart
+                                ? Colors.green
+                                : Colors.orangeAccent,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                          icon: Icon(
+                            alreadyInCart
+                                ? Icons.check
+                                : Icons.shopping_cart_outlined,
+                          ),
+                          label: Text(
+                            alreadyInCart ? 'Added to Cart' : 'Add to Cart',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                          onPressed: () {
+                            // context.read<CartProvider>() accesses the CartProvider
+                            // and calls addProduct — this triggers notifyListeners()
+                            // which updates the cart screen automatically.
+                            context.read<CartProvider>().addProduct(product);
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${product.title} added to cart!'),
+                                duration: const Duration(seconds: 1),
+                              ),
+                            );
+                          },
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
