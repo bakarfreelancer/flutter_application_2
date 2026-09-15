@@ -9,6 +9,39 @@ class UserStorage {
   static const String _keyContact = 'user_contact';
   static const String _keyAddress = 'user_address';
 
+  // --- Auth keys (added in Lecture 13) ---
+  static const String _keyToken = 'auth_token';
+  static const String _keyEmail = 'auth_email';
+
+  // Save the auth token and email after a successful login/register
+  static Future<void> saveToken({
+    required String token,
+    required String email,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyToken, token);
+    await prefs.setString(_keyEmail, email);
+  }
+
+  // Get the stored auth token (empty string if not logged in)
+  static Future<String> getToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyToken) ?? '';
+  }
+
+  // Get the stored email
+  static Future<String> getEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyEmail) ?? '';
+  }
+
+  // Remove token and email (used when logging out)
+  static Future<void> clearAuth() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyToken);
+    await prefs.remove(_keyEmail);
+  }
+
   // Save user data to local storage
   static Future<void> saveUser({
     required String name,

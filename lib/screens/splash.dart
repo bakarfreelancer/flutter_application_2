@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_application_2/providers/auth_provider.dart';
 import 'package:flutter_application_2/screens/home.dart';
-import 'package:flutter_application_2/screens/user_info_screen.dart';
-import 'package:flutter_application_2/services/user_storage.dart';
+import 'package:flutter_application_2/screens/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,38 +15,39 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigate(); // start the navigation logic after splash
+    _navigate(); // start navigation logic after splash delay
   }
 
-  // Waits 2 seconds, then checks if user data exists in local storage.
-  // Navigates to the correct screen based on the result.
+  // Waits 2 seconds, then checks if the user has a saved auth token.
+  // Routes to Login or Home accordingly.
   Future<void> _navigate() async {
     await Future.delayed(const Duration(seconds: 2));
 
     if (!mounted) return;
 
-    final userExists = await UserStorage.hasUser();
+    // Ask AuthProvider to check SharedPreferences for a saved token.
+    // If a token exists, AuthProvider sets isLoggedIn = true.
+    await context.read<AuthProvider>().checkAuthStatus();
 
     if (!mounted) return;
+
+    final isLoggedIn = context.read<AuthProvider>().isLoggedIn;
 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => userExists
-            ? const MyApp() // data found → go to home
-            : const UserInfoScreen(), // no data → ask for info
+        builder: (_) => isLoggedIn
+            ? const MyApp()       // token found → go straight to home
+            : const LoginScreen(), // no token → ask user to log in
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'My App',
-      home: Scaffold(
-        body: Center(
-          child: Image.asset('assets/images/logo.jpg', width: 200, height: 200),
-        ),
+    return Scaffold(
+      body: Center(
+        child: Image.asset('assets/images/logo.jpg', width: 200, height: 200),
       ),
     );
   }

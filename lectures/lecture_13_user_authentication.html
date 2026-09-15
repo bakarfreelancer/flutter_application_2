@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 13 – User Authentication</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px; color: #1a1a1a; background: #fff;
+      padding: 40px; max-width: 860px; margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800; color: white;
+      padding: 28px 32px; border-radius: 8px; margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+    .fn  { color: #f9e2af; }
+
+    .tip  { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+    .warn { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+    .success { background: #e8f5e9; border-left: 4px solid #388e3c; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .success strong { color: #2e7d32; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2.2; margin: 12px 0; text-align: center; color: #444; }
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+    .box { background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; padding: 14px; font-size: 13px; }
+    .box h4 { margin-bottom: 8px; color: #444; }
+    .bad  { border-top: 3px solid #e53935; }
+    .good { border-top: 3px solid #43a047; }
+
+    @media print {
+      body { padding: 20px; }
+      pre { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  HEADER                                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <div class="course">BS — MOBILE APPLICATION DEVELOPMENT · FLUTTER</div>
+  <h1>Lecture 13 — User Authentication</h1>
+  <div class="meta">Topics: Login · Register · Auth Token · Route Protection · Logout</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  OBJECTIVES                                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ul>
+    <li>Understand what authentication is and why apps need it</li>
+    <li>Build a Login screen and a Register screen with form validation</li>
+    <li>Make real API calls to a login/register endpoint using <code>http</code></li>
+    <li>Store the auth token in <code>SharedPreferences</code> so the session persists</li>
+    <li>Create an <code>AuthProvider</code> to manage login state across the whole app</li>
+    <li>Protect routes — redirect unauthenticated users to Login</li>
+    <li>Implement Logout that clears the token and returns to Login</li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  1. WHAT IS AUTHENTICATION?                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>1. What Is Authentication?</h2>
+
+<p><strong>Authentication</strong> = proving you are who you claim to be.</p>
+<p>In most apps the process works like this:</p>
+<ol>
+  <li>User enters email + password and taps <strong>Login</strong></li>
+  <li>The app sends that data to the server</li>
+  <li>The server checks the credentials and responds with a <strong>token</strong></li>
+  <li>The app saves that token and sends it with future requests to prove identity</li>
+  <li>When the user logs out, the token is deleted</li>
+</ol>
+
+<div class="diagram">
+  User taps Login<br>
+  ↓<br>
+  App sends email + password → Server<br>
+  ↓<br>
+  Server responds with a <strong>Token</strong> (e.g. <code>"QpwL5tpe83ilfN2"</code>)<br>
+  ↓<br>
+  App saves token to <strong>SharedPreferences</strong><br>
+  ↓<br>
+  Next time app opens → token found → user is still logged in ✅
+</div>
+
+<div class="tip">
+  <strong>What is a Token?</strong> Think of it like a ticket at an event.
+  Once you show your ID at the door (login), you get a ticket (token).
+  You show the ticket to get in — you don't need to show your ID again every time.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  2. THE TEST API — reqres.in                               -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>2. The Test API — reqres.in</h2>
+
+<p>We will use <strong>reqres.in</strong> — a free, public fake API designed for learning.
+It behaves exactly like a real authentication server but requires no setup.</p>
+
+<table>
+  <tr>
+    <th>Action</th>
+    <th>URL</th>
+    <th>Method</th>
+    <th>Test Email</th>
+    <th>Test Password</th>
+  </tr>
+  <tr>
+    <td>Login</td>
+    <td><code>https://reqres.in/api/login</code></td>
+    <td>POST</td>
+    <td>eve.holt@reqres.in</td>
+    <td>cityslicka</td>
+  </tr>
+  <tr>
+    <td>Register</td>
+    <td><code>https://reqres.in/api/register</code></td>
+    <td>POST</td>
+    <td>eve.holt@reqres.in</td>
+    <td>pistol</td>
+  </tr>
+</table>
+
+<p>A successful login response looks like:</p>
+<pre>
+{
+  <span class="st">"token"</span>: <span class="st">"QpwL5tpe83ilfN2"</span>
+}
+</pre>
+
+<p>A failed login response looks like:</p>
+<pre>
+{
+  <span class="st">"error"</span>: <span class="st">"user not found"</span>
+}
+</pre>
+
+<div class="warn">
+  <strong>Note:</strong> reqres.in only accepts specific email/password combinations listed above.
+  Any other credentials will return an error — this is intentional for the demo.
+  In a real app, your server would accept any valid registered user.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  3. PROJECT STRUCTURE                                      -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>3. Files We Are Adding or Changing</h2>
+
+<table>
+  <tr>
+    <th>File</th>
+    <th>New or Modified</th>
+    <th>Purpose</th>
+  </tr>
+  <tr>
+    <td><code>lib/services/user_storage.dart</code></td>
+    <td>Modified</td>
+    <td>Add methods to save/get/clear the auth token</td>
+  </tr>
+  <tr>
+    <td><code>lib/services/auth_service.dart</code></td>
+    <td>New</td>
+    <td>HTTP calls for login and register</td>
+  </tr>
+  <tr>
+    <td><code>lib/providers/auth_provider.dart</code></td>
+    <td>New</td>
+    <td>Manages login state across the whole app</td>
+  </tr>
+  <tr>
+    <td><code>lib/screens/login_screen.dart</code></td>
+    <td>New</td>
+    <td>Login form UI</td>
+  </tr>
+  <tr>
+    <td><code>lib/screens/register_screen.dart</code></td>
+    <td>New</td>
+    <td>Register form UI</td>
+  </tr>
+  <tr>
+    <td><code>lib/main.dart</code></td>
+    <td>Modified</td>
+    <td>Add AuthProvider alongside CartProvider</td>
+  </tr>
+  <tr>
+    <td><code>lib/screens/splash.dart</code></td>
+    <td>Modified</td>
+    <td>Check for saved token instead of user info</td>
+  </tr>
+  <tr>
+    <td><code>lib/screens/profile.dart</code></td>
+    <td>Modified</td>
+    <td>Show email and add Logout button</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  4. STEP 1 — UPDATE UserStorage                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>4. Step 1 — Add Auth Methods to UserStorage</h2>
+
+<p>We already use <code>UserStorage</code> to save name/contact/address.
+Now we add 3 more methods to save and clear the auth token.</p>
+
+<span class="filepath">lib/services/user_storage.dart  (new methods only)</span>
+<pre>
+<span class="cm">// --- Auth keys ---</span>
+<span class="kw">static const</span> <span class="cl">String</span> _keyToken = <span class="st">'auth_token'</span>;
+<span class="kw">static const</span> <span class="cl">String</span> _keyEmail = <span class="st">'auth_email'</span>;
+
+<span class="cm">// Save the auth token and email after a successful login/register</span>
+<span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">saveToken</span>({
+  <span class="kw">required</span> <span class="cl">String</span> token,
+  <span class="kw">required</span> <span class="cl">String</span> email,
+}) <span class="kw">async</span> {
+  <span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.<span class="fn">getInstance</span>();
+  <span class="kw">await</span> prefs.<span class="fn">setString</span>(_keyToken, token);
+  <span class="kw">await</span> prefs.<span class="fn">setString</span>(_keyEmail, email);
+}
+
+<span class="cm">// Get the stored token (empty string if not logged in)</span>
+<span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="cl">String</span>&gt; <span class="fn">getToken</span>() <span class="kw">async</span> {
+  <span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.<span class="fn">getInstance</span>();
+  <span class="kw">return</span> prefs.<span class="fn">getString</span>(_keyToken) ?? <span class="st">''</span>;
+}
+
+<span class="cm">// Get the stored email</span>
+<span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="cl">String</span>&gt; <span class="fn">getEmail</span>() <span class="kw">async</span> {
+  <span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.<span class="fn">getInstance</span>();
+  <span class="kw">return</span> prefs.<span class="fn">getString</span>(_keyEmail) ?? <span class="st">''</span>;
+}
+
+<span class="cm">// Remove token and email (used when logging out)</span>
+<span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">clearAuth</span>() <span class="kw">async</span> {
+  <span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.<span class="fn">getInstance</span>();
+  <span class="kw">await</span> prefs.<span class="fn">remove</span>(_keyToken);
+  <span class="kw">await</span> prefs.<span class="fn">remove</span>(_keyEmail);
+}
+</pre>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  5. STEP 2 — AUTH SERVICE                                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>5. Step 2 — Create AuthService</h2>
+
+<p><code>AuthService</code> is responsible for making the HTTP calls.
+It returns a simple Map so the screen can check if the call succeeded.</p>
+
+<span class="filepath">lib/services/auth_service.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'dart:convert'</span>;
+<span class="kw">import</span> <span class="st">'package:http/http.dart'</span> <span class="kw">as</span> http;
+
+<span class="kw">class</span> <span class="cl">AuthService</span> {
+  <span class="kw">static const</span> <span class="cl">String</span> _baseUrl = <span class="st">'https://reqres.in/api'</span>;
+
+  <span class="cm">// Login — returns { 'success': true, 'token': '...' }
+  //              or  { 'success': false, 'error': '...' }</span>
+  <span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="cl">Map</span>&lt;<span class="cl">String</span>, <span class="kw">dynamic</span>&gt;&gt; <span class="fn">login</span>(
+    <span class="cl">String</span> email, <span class="cl">String</span> password,
+  ) <span class="kw">async</span> {
+    <span class="kw">try</span> {
+      <span class="kw">final</span> response = <span class="kw">await</span> http.<span class="fn">post</span>(
+        <span class="cl">Uri</span>.<span class="fn">parse</span>(<span class="st">'$_baseUrl/login'</span>),
+        headers: {<span class="st">'Content-Type'</span>: <span class="st">'application/json'</span>},
+        body: <span class="fn">jsonEncode</span>({<span class="st">'email'</span>: email, <span class="st">'password'</span>: password}),
+      );
+
+      <span class="kw">final</span> data = <span class="fn">jsonDecode</span>(response.body);
+
+      <span class="kw">if</span> (response.statusCode == <span class="num">200</span>) {
+        <span class="kw">return</span> {<span class="st">'success'</span>: <span class="kw">true</span>, <span class="st">'token'</span>: data[<span class="st">'token'</span>]};
+      } <span class="kw">else</span> {
+        <span class="kw">return</span> {<span class="st">'success'</span>: <span class="kw">false</span>, <span class="st">'error'</span>: data[<span class="st">'error'</span>] ?? <span class="st">'Login failed'</span>};
+      }
+    } <span class="kw">catch</span> (e) {
+      <span class="kw">return</span> {<span class="st">'success'</span>: <span class="kw">false</span>, <span class="st">'error'</span>: <span class="st">'Network error. Check your connection.'</span>};
+    }
+  }
+
+  <span class="cm">// Register — same return format as login</span>
+  <span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="cl">Map</span>&lt;<span class="cl">String</span>, <span class="kw">dynamic</span>&gt;&gt; <span class="fn">register</span>(
+    <span class="cl">String</span> email, <span class="cl">String</span> password,
+  ) <span class="kw">async</span> {
+    <span class="kw">try</span> {
+      <span class="kw">final</span> response = <span class="kw">await</span> http.<span class="fn">post</span>(
+        <span class="cl">Uri</span>.<span class="fn">parse</span>(<span class="st">'$_baseUrl/register'</span>),
+        headers: {<span class="st">'Content-Type'</span>: <span class="st">'application/json'</span>},
+        body: <span class="fn">jsonEncode</span>({<span class="st">'email'</span>: email, <span class="st">'password'</span>: password}),
+      );
+
+      <span class="kw">final</span> data = <span class="fn">jsonDecode</span>(response.body);
+
+      <span class="kw">if</span> (response.statusCode == <span class="num">200</span>) {
+        <span class="kw">return</span> {<span class="st">'success'</span>: <span class="kw">true</span>, <span class="st">'token'</span>: data[<span class="st">'token'</span>]};
+      } <span class="kw">else</span> {
+        <span class="kw">return</span> {<span class="st">'success'</span>: <span class="kw">false</span>, <span class="st">'error'</span>: data[<span class="st">'error'</span>] ?? <span class="st">'Registration failed'</span>};
+      }
+    } <span class="kw">catch</span> (e) {
+      <span class="kw">return</span> {<span class="st">'success'</span>: <span class="kw">false</span>, <span class="st">'error'</span>: <span class="st">'Network error. Check your connection.'</span>};
+    }
+  }
+}
+</pre>
+
+<div class="tip">
+  <strong>Why wrap in try/catch?</strong> If the phone has no internet, <code>http.post()</code>
+  throws an exception instead of returning a response. The <code>catch</code> block handles
+  this gracefully by returning a friendly error message instead of crashing the app.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  6. STEP 3 — AUTH PROVIDER                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>6. Step 3 — Create AuthProvider</h2>
+
+<p>Just like <code>CartProvider</code> manages the cart, <code>AuthProvider</code> manages
+whether the user is logged in. Any screen that needs to know about auth state can
+listen to this provider.</p>
+
+<span class="filepath">lib/providers/auth_provider.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter/material.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/services/user_storage.dart'</span>;
+
+<span class="kw">class</span> <span class="cl">AuthProvider</span> <span class="kw">extends</span> <span class="cl">ChangeNotifier</span> {
+
+  <span class="kw">bool</span> _isLoggedIn = <span class="kw">false</span>;
+  <span class="cl">String</span> _email = <span class="st">''</span>;
+  <span class="cl">String</span> _token = <span class="st">''</span>;
+
+  <span class="kw">bool</span> <span class="kw">get</span> isLoggedIn =&gt; _isLoggedIn;
+  <span class="cl">String</span> <span class="kw">get</span> email    =&gt; _email;
+  <span class="cl">String</span> <span class="kw">get</span> token    =&gt; _token;
+
+  <span class="cm">// Called from SplashScreen — checks if a token is already saved</span>
+  <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">checkAuthStatus</span>() <span class="kw">async</span> {
+    <span class="kw">final</span> token = <span class="kw">await</span> <span class="cl">UserStorage</span>.<span class="fn">getToken</span>();
+    <span class="kw">final</span> email = <span class="kw">await</span> <span class="cl">UserStorage</span>.<span class="fn">getEmail</span>();
+    <span class="kw">if</span> (token.isNotEmpty) {
+      _token = token;
+      _email = email;
+      _isLoggedIn = <span class="kw">true</span>;
+      <span class="fn">notifyListeners</span>();
+    }
+  }
+
+  <span class="cm">// Called after a successful login or register API response</span>
+  <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">login</span>(<span class="cl">String</span> email, <span class="cl">String</span> token) <span class="kw">async</span> {
+    <span class="kw">await</span> <span class="cl">UserStorage</span>.<span class="fn">saveToken</span>(token: token, email: email);
+    _token = token;
+    _email = email;
+    _isLoggedIn = <span class="kw">true</span>;
+    <span class="fn">notifyListeners</span>(); <span class="cm">// 🔔 tell all listeners: user is now logged in</span>
+  }
+
+  <span class="cm">// Called from the Profile screen logout button</span>
+  <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">logout</span>() <span class="kw">async</span> {
+    <span class="kw">await</span> <span class="cl">UserStorage</span>.<span class="fn">clearAuth</span>();
+    _token = <span class="st">''</span>;
+    _email = <span class="st">''</span>;
+    _isLoggedIn = <span class="kw">false</span>;
+    <span class="fn">notifyListeners</span>(); <span class="cm">// 🔔 tell all listeners: user is now logged out</span>
+  }
+}
+</pre>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  7. STEP 4 — REGISTER AuthProvider IN main.dart           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>7. Step 4 — Register AuthProvider in main.dart</h2>
+
+<p>Before Lecture 13, <code>main.dart</code> had a single <code>ChangeNotifierProvider</code> for
+the cart. Now we need two providers. We switch to <code>MultiProvider</code>.</p>
+
+<span class="filepath">lib/main.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter/material.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:provider/provider.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/providers/cart_provider.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/providers/auth_provider.dart'</span>; <span class="cm">// NEW</span>
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/screens/splash.dart'</span>;
+
+<span class="kw">void</span> <span class="fn">main</span>() {
+  <span class="fn">runApp</span>(
+    <span class="cm">// MultiProvider lets us register MORE THAN ONE provider at once.</span>
+    <span class="cl">MultiProvider</span>(
+      providers: [
+        <span class="cl">ChangeNotifierProvider</span>(create: (_) =&gt; <span class="cl">CartProvider</span>()),
+        <span class="cl">ChangeNotifierProvider</span>(create: (_) =&gt; <span class="cl">AuthProvider</span>()),  <span class="cm">// NEW</span>
+      ],
+      child: <span class="cl">MaterialApp</span>(
+        title: <span class="st">'My App'</span>,
+        debugShowCheckedModeBanner: <span class="kw">false</span>,
+        home: <span class="kw">const</span> <span class="cl">SplashScreen</span>(),
+      ),
+    ),
+  );
+}
+</pre>
+
+<div class="tip">
+  <strong>MultiProvider</strong> is just a convenient shorthand for nesting multiple
+  <code>ChangeNotifierProvider</code>s inside each other. The result is identical — all
+  providers are available to every widget in the tree.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  8. STEP 5 — UPDATE SPLASHSCREEN                          -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>8. Step 5 — Update SplashScreen</h2>
+
+<p>Previously, the splash screen checked for a stored <em>name</em> to decide where to go.
+Now it checks for a stored <em>auth token</em> and routes to either <code>LoginScreen</code>
+or <code>HomeScreen</code>.</p>
+
+<span class="filepath">lib/screens/splash.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:provider/provider.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/providers/auth_provider.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/screens/login_screen.dart'</span>;
+
+<span class="cm">// Inside _SplashScreenState:</span>
+
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">_navigate</span>() <span class="kw">async</span> {
+  <span class="kw">await</span> <span class="cl">Future</span>.<span class="fn">delayed</span>(<span class="kw">const</span> <span class="cl">Duration</span>(seconds: <span class="num">2</span>));
+  <span class="kw">if</span> (!mounted) <span class="kw">return</span>;
+
+  <span class="cm">// Ask AuthProvider to check SharedPreferences for a saved token</span>
+  <span class="kw">await</span> context.<span class="fn">read</span>&lt;<span class="cl">AuthProvider</span>&gt;().<span class="fn">checkAuthStatus</span>();
+
+  <span class="kw">if</span> (!mounted) <span class="kw">return</span>;
+
+  <span class="kw">final</span> isLoggedIn = context.<span class="fn">read</span>&lt;<span class="cl">AuthProvider</span>&gt;().isLoggedIn;
+
+  <span class="cl">Navigator</span>.<span class="fn">pushReplacement</span>(
+    context,
+    <span class="cl">MaterialPageRoute</span>(
+      builder: (_) =&gt; isLoggedIn
+          ? <span class="kw">const</span> <span class="cl">MyApp</span>()        <span class="cm">// token found → go to home</span>
+          : <span class="kw">const</span> <span class="cl">LoginScreen</span>(), <span class="cm">// no token  → go to login</span>
+    ),
+  );
+}
+</pre>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  9. STEP 6 — LOGIN SCREEN                                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>9. Step 6 — Build the Login Screen</h2>
+
+<p>The login screen has an email field, a password field, a Login button,
+and a link to the Register screen. When the button is tapped, it calls
+<code>AuthService.login()</code> and on success calls <code>AuthProvider.login()</code>
+to save the token.</p>
+
+<span class="filepath">lib/screens/login_screen.dart  (key parts)</span>
+<pre>
+<span class="kw">class</span> <span class="cl">_LoginScreenState</span> <span class="kw">extends</span> <span class="cl">State</span>&lt;<span class="cl">LoginScreen</span>&gt; {
+  <span class="kw">final</span> _formKey = <span class="cl">GlobalKey</span>&lt;<span class="cl">FormState</span>&gt;();
+  <span class="kw">final</span> _emailController    = <span class="cl">TextEditingController</span>();
+  <span class="kw">final</span> _passwordController = <span class="cl">TextEditingController</span>();
+  <span class="kw">bool</span> _isLoading = <span class="kw">false</span>;
+
+  <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">_login</span>() <span class="kw">async</span> {
+    <span class="cm">// 1. Validate the form</span>
+    <span class="kw">if</span> (!_formKey.currentState!.<span class="fn">validate</span>()) <span class="kw">return</span>;
+
+    <span class="cm">// 2. Show loading spinner</span>
+    <span class="fn">setState</span>(() =&gt; _isLoading = <span class="kw">true</span>);
+
+    <span class="cm">// 3. Call the API</span>
+    <span class="kw">final</span> result = <span class="kw">await</span> <span class="cl">AuthService</span>.<span class="fn">login</span>(
+      _emailController.text.<span class="fn">trim</span>(),
+      _passwordController.text.<span class="fn">trim</span>(),
+    );
+
+    <span class="kw">if</span> (!mounted) <span class="kw">return</span>;
+    <span class="fn">setState</span>(() =&gt; _isLoading = <span class="kw">false</span>);
+
+    <span class="kw">if</span> (result[<span class="st">'success'</span>] == <span class="kw">true</span>) {
+      <span class="cm">// 4. Save token via AuthProvider</span>
+      <span class="kw">final</span> authProvider = context.<span class="fn">read</span>&lt;<span class="cl">AuthProvider</span>&gt;();
+      <span class="kw">await</span> authProvider.<span class="fn">login</span>(_emailController.text.<span class="fn">trim</span>(), result[<span class="st">'token'</span>]);
+
+      <span class="kw">if</span> (!mounted) <span class="kw">return</span>;
+
+      <span class="cm">// 5. Go to Home — remove all previous routes so user can't go back</span>
+      <span class="cl">Navigator</span>.<span class="fn">pushAndRemoveUntil</span>(
+        context,
+        <span class="cl">MaterialPageRoute</span>(builder: (_) =&gt; <span class="kw">const</span> <span class="cl">MyApp</span>()),
+        (route) =&gt; <span class="kw">false</span>,
+      );
+    } <span class="kw">else</span> {
+      <span class="cm">// Show error message</span>
+      <span class="cl">ScaffoldMessenger</span>.<span class="fn">of</span>(context).<span class="fn">showSnackBar</span>(
+        <span class="cl">SnackBar</span>(content: <span class="cl">Text</span>(result[<span class="st">'error'</span>]),
+                 backgroundColor: <span class="cl">Colors</span>.red),
+      );
+    }
+  }
+</pre>
+
+<div class="tip">
+  <strong>Why <code>pushAndRemoveUntil</code>?</strong> After login we clear the navigation stack.
+  This prevents the user from pressing the Android Back button to go back to the Login screen
+  while they are already in the app.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  10. STEP 7 — LOGOUT IN PROFILE                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>10. Step 7 — Add Logout to ProfileScreen</h2>
+
+<p>The profile screen now shows the user's email (from <code>AuthProvider</code>)
+and has a Logout button at the bottom.</p>
+
+<span class="filepath">lib/screens/profile.dart  (key parts)</span>
+<pre>
+<span class="cm">// Read email from AuthProvider to display in profile</span>
+<span class="kw">final</span> email = context.<span class="fn">watch</span>&lt;<span class="cl">AuthProvider</span>&gt;().email;
+
+<span class="cm">// Logout method — shows a confirmation dialog first</span>
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">_logout</span>() <span class="kw">async</span> {
+  <span class="kw">final</span> confirmed = <span class="kw">await</span> <span class="fn">showDialog</span>&lt;<span class="kw">bool</span>&gt;(
+    context: context,
+    builder: (ctx) =&gt; <span class="cl">AlertDialog</span>(
+      title: <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Logout'</span>),
+      content: <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Are you sure you want to logout?'</span>),
+      actions: [
+        <span class="cl">TextButton</span>(
+          onPressed: () =&gt; <span class="cl">Navigator</span>.<span class="fn">pop</span>(ctx, <span class="kw">false</span>),
+          child: <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Cancel'</span>),
+        ),
+        <span class="cl">TextButton</span>(
+          onPressed: () =&gt; <span class="cl">Navigator</span>.<span class="fn">pop</span>(ctx, <span class="kw">true</span>),
+          child: <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Logout'</span>,
+              style: <span class="cl">TextStyle</span>(color: <span class="cl">Colors</span>.red)),
+        ),
+      ],
+    ),
+  );
+
+  <span class="kw">if</span> (confirmed != <span class="kw">true</span>) <span class="kw">return</span>; <span class="cm">// user cancelled</span>
+  <span class="kw">if</span> (!mounted) <span class="kw">return</span>;
+
+  <span class="cm">// Clear token via AuthProvider</span>
+  <span class="kw">await</span> context.<span class="fn">read</span>&lt;<span class="cl">AuthProvider</span>&gt;().<span class="fn">logout</span>();
+
+  <span class="kw">if</span> (!mounted) <span class="kw">return</span>;
+
+  <span class="cm">// Go to Login, clear all routes</span>
+  <span class="cl">Navigator</span>.<span class="fn">pushAndRemoveUntil</span>(
+    context,
+    <span class="cl">MaterialPageRoute</span>(builder: (_) =&gt; <span class="kw">const</span> <span class="cl">LoginScreen</span>()),
+    (route) =&gt; <span class="kw">false</span>,
+  );
+}
+</pre>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  11. THE FULL AUTH FLOW                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>11. The Full Authentication Flow</h2>
+
+<div class="diagram">
+  App starts → <strong>SplashScreen</strong><br>
+  ↓ &nbsp; calls AuthProvider.checkAuthStatus()<br>
+  ┌──────────────────┬──────────────────────┐<br>
+  │ Token found ✅   │ No token ❌           │<br>
+  ↓                  ↓<br>
+  <strong>HomeScreen</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>LoginScreen</strong><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓  "Don't have account?"<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>RegisterScreen</strong><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓ Success<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>HomeScreen</strong><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓ Profile → Logout<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <strong>LoginScreen</strong>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  12. QUICK REFERENCE                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>12. Quick Reference — Auth Cheat Sheet</h2>
+
+<table>
+  <tr>
+    <th>What You Want to Do</th>
+    <th>Code</th>
+  </tr>
+  <tr>
+    <td>Check if user is logged in</td>
+    <td><code>context.watch&lt;AuthProvider&gt;().isLoggedIn</code></td>
+  </tr>
+  <tr>
+    <td>Get the logged-in user's email</td>
+    <td><code>context.watch&lt;AuthProvider&gt;().email</code></td>
+  </tr>
+  <tr>
+    <td>Login (save token)</td>
+    <td><code>context.read&lt;AuthProvider&gt;().login(email, token)</code></td>
+  </tr>
+  <tr>
+    <td>Logout (clear token)</td>
+    <td><code>context.read&lt;AuthProvider&gt;().logout()</code></td>
+  </tr>
+  <tr>
+    <td>Check saved token on startup</td>
+    <td><code>context.read&lt;AuthProvider&gt;().checkAuthStatus()</code></td>
+  </tr>
+  <tr>
+    <td>Call login API</td>
+    <td><code>AuthService.login(email, password)</code></td>
+  </tr>
+  <tr>
+    <td>Call register API</td>
+    <td><code>AuthService.register(email, password)</code></td>
+  </tr>
+  <tr>
+    <td>Navigate and clear all routes</td>
+    <td><code>Navigator.pushAndRemoveUntil(context, route, (_) =&gt; false)</code></td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  13. COMMON MISTAKES                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>13. Common Mistakes to Avoid</h2>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Using context after async gap</h4>
+    <pre style="font-size:11px; margin:4px 0">await someAsyncCall();
+Navigator.push(context, ...); // ⚠️ risky</pre>
+    <p>If the widget is removed while waiting, <code>context</code> is invalid.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Check mounted first</h4>
+    <pre style="font-size:11px; margin:4px 0">await someAsyncCall();
+if (!mounted) return; // ✅ safe
+Navigator.push(context, ...);</pre>
+    <p>Always check <code>mounted</code> before using <code>context</code> after an await.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Wrong Provider placement</h4>
+    <pre style="font-size:11px; margin:4px 0">// Inside a single screen
+ChangeNotifierProvider(
+  create: (_) => AuthProvider(),
+  ...
+)</pre>
+    <p>Other screens cannot access it.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Provider at app root</h4>
+    <pre style="font-size:11px; margin:4px 0">// In main.dart, above MaterialApp
+MultiProvider(
+  providers: [
+    ChangeNotifierProvider(create: (_) => AuthProvider()),
+  ], ...
+)</pre>
+    <p>Every screen in the app can access it.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  14. SUMMARY OF CHANGES                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>14. Summary of Changes Made This Lecture</h2>
+
+<table>
+  <tr>
+    <th>File</th>
+    <th>What Changed</th>
+    <th>Why</th>
+  </tr>
+  <tr>
+    <td><code>user_storage.dart</code></td>
+    <td>Added <code>saveToken</code>, <code>getToken</code>, <code>getEmail</code>, <code>clearAuth</code></td>
+    <td>Persist the auth token between app restarts</td>
+  </tr>
+  <tr>
+    <td><code>auth_service.dart</code></td>
+    <td>New file — login and register HTTP calls</td>
+    <td>Keep network code separate from UI code</td>
+  </tr>
+  <tr>
+    <td><code>auth_provider.dart</code></td>
+    <td>New file — manages isLoggedIn, email, token</td>
+    <td>Share auth state across all screens via Provider</td>
+  </tr>
+  <tr>
+    <td><code>login_screen.dart</code></td>
+    <td>New file — login form with validation</td>
+    <td>Let the user sign in</td>
+  </tr>
+  <tr>
+    <td><code>register_screen.dart</code></td>
+    <td>New file — register form with validation</td>
+    <td>Let the user create a new account</td>
+  </tr>
+  <tr>
+    <td><code>main.dart</code></td>
+    <td>Switched to <code>MultiProvider</code>, added <code>AuthProvider</code></td>
+    <td>Register AuthProvider alongside CartProvider</td>
+  </tr>
+  <tr>
+    <td><code>splash.dart</code></td>
+    <td>Now checks auth token instead of user name</td>
+    <td>Route to Login or Home based on login status</td>
+  </tr>
+  <tr>
+    <td><code>profile.dart</code></td>
+    <td>Shows email from AuthProvider + Logout button</td>
+    <td>Let the user see their session and log out</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  PRACTICE TASK                                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>Practice Task</h2>
+<ol>
+  <li>Run the app — it should now open to the <strong>Login screen</strong></li>
+  <li>Try tapping Login with empty fields — validation messages should appear</li>
+  <li>Enter the test credentials (<code>eve.holt@reqres.in</code> / <code>cityslicka</code>) and login — you should reach the Home screen</li>
+  <li>Go to the <strong>Profile tab</strong> — your email should be shown</li>
+  <li>Tap <strong>Logout</strong> — confirm the dialog — you should return to Login</li>
+  <li>Restart the app — login again, then restart — it should open directly to Home (token was saved)</li>
+  <li><strong>Challenge:</strong> Navigate to the Register screen and register using <code>eve.holt@reqres.in</code> / <code>pistol</code></li>
+</ol>
+
+<div class="success">
+  <strong>Key Takeaway:</strong> Authentication is just a combination of things you already know —
+  forms (Lecture 9), HTTP calls (Lecture 10), SharedPreferences (Lecture 7), and Provider (Lecture 12).
+  This lecture shows how they all work together to protect screens and maintain user sessions.
+</div>
+
+</body>
+</html>
