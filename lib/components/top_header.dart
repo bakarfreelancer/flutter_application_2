@@ -14,8 +14,15 @@ class TopHeader extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Lecture 14: Theme.of(context) reads colors from the active theme.
+    // .colorScheme.primary       → the main brand color (orange)
+    // .colorScheme.onPrimary     → the color that looks good ON TOP of primary (white)
+    // When dark mode is on, Flutter automatically adjusts these colors.
+    final primaryColor = Theme.of(context).colorScheme.primary;
+    final onPrimaryColor = Theme.of(context).colorScheme.onPrimary;
+
     return Container(
-      color: Colors.orangeAccent, // Same color used throughout the app
+      color: primaryColor, // was: Colors.orangeAccent
       padding: const EdgeInsets.symmetric(horizontal: 8.0),
       child: SafeArea(
         child: Row(
@@ -23,15 +30,15 @@ class TopHeader extends StatelessWidget implements PreferredSizeWidget {
           children: [
             // Left: Menu icon
             IconButton(
-              icon: const Icon(Icons.menu, color: Colors.white),
+              icon: Icon(Icons.menu, color: onPrimaryColor), // was: Colors.white
               onPressed: () {},
             ),
 
             // Center: Title text — comes from the 'title' parameter
             Text(
               title,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: onPrimaryColor, // was: Colors.white
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
@@ -39,7 +46,7 @@ class TopHeader extends StatelessWidget implements PreferredSizeWidget {
 
             // Right: Notification icon
             IconButton(
-              icon: const Icon(Icons.notifications_outlined, color: Colors.white),
+              icon: Icon(Icons.notifications_outlined, color: onPrimaryColor), // was: Colors.white
               onPressed: () {},
             ),
           ],

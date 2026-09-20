@@ -29,16 +29,15 @@ class _MyAppState extends State<MyApp> {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'My App',
-      debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        appBar: TopHeader(title: _titles[_currentIndex]),
-        body: IndexedStack(index: _currentIndex, children: _screens),
-        bottomNavigationBar: BottomNavBar(
-          currentIndex: _currentIndex,
-          onTap: (index) => setState(() => _currentIndex = index),
-        ),
+    // Lecture 14: Removed the inner MaterialApp that was here before.
+    // Now we return a plain Scaffold so the outer MaterialApp in main.dart
+    // controls the theme for the ENTIRE app — including this screen.
+    return Scaffold(
+      appBar: TopHeader(title: _titles[_currentIndex]),
+      body: IndexedStack(index: _currentIndex, children: _screens),
+      bottomNavigationBar: BottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
       ),
     );
   }
@@ -104,6 +103,10 @@ class _ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Lecture 14: Theme.of(context) gives us the active theme.
+    // .colorScheme.primary is our brand color (orange in light, lighter orange in dark).
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       // InkWell adds a ripple effect on tap and handles the navigation
@@ -166,8 +169,8 @@ class _ProductCard extends StatelessWidget {
                     children: [
                       Text(
                         '\$${product.price.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          color: Colors.orangeAccent,
+                        style: TextStyle(
+                          color: primaryColor, // Lecture 14: was Colors.orangeAccent
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),

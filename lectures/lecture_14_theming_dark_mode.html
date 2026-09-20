@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 14 – App Theming &amp; Dark Mode</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px; color: #1a1a1a; background: #fff;
+      padding: 40px; max-width: 860px; margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800; color: white;
+      padding: 28px 32px; border-radius: 8px; margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+    .fn  { color: #f9e2af; }
+
+    .tip  { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+    .warn { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+    .success { background: #e8f5e9; border-left: 4px solid #388e3c; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .success strong { color: #2e7d32; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2.2; margin: 12px 0; text-align: center; color: #444; }
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+    .box { background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; padding: 14px; font-size: 13px; }
+    .box h4 { margin-bottom: 8px; color: #444; }
+    .bad  { border-top: 3px solid #e53935; }
+    .good { border-top: 3px solid #43a047; }
+
+    @media print {
+      body { padding: 20px; }
+      pre { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  HEADER                                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <div class="course">BS — MOBILE APPLICATION DEVELOPMENT · FLUTTER</div>
+  <h1>Lecture 14 — App Theming &amp; Dark Mode</h1>
+  <div class="meta">Topics: ThemeData · ColorScheme · Theme.of(context) · ThemeProvider · Dark Mode Toggle · Persisting Theme</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  OBJECTIVES                                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ul>
+    <li>Understand the problem with hardcoded colors and why a central theme system is better</li>
+    <li>Define a global <code>ThemeData</code> with a <code>ColorScheme</code> in <code>main.dart</code></li>
+    <li>Use <code>Theme.of(context)</code> in widgets to read colors from the active theme</li>
+    <li>Create a <code>ThemeProvider</code> to manage dark/light mode state (using Provider — Lecture 12)</li>
+    <li>Define a <code>darkTheme</code> and switch between them using <code>ThemeMode</code></li>
+    <li>Add a dark mode toggle switch on the Profile screen</li>
+    <li>Persist the chosen theme using <code>SharedPreferences</code> (Lecture 7)</li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  1. THE PROBLEM                                            -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>1. The Problem — Hardcoded Colors</h2>
+
+<p>Our app is fully working, but if you look at the code you will find <code>Colors.orangeAccent</code>
+written in many different files:</p>
+
+<ul>
+  <li><code>top_header.dart</code> — header background and icon colors</li>
+  <li><code>bottom_nav_bar.dart</code> — selected tab color</li>
+  <li><code>home.dart</code> — product price color</li>
+  <li><code>profile.dart</code> — avatar background and icon colors</li>
+</ul>
+
+<p>This causes two big problems:</p>
+<ol>
+  <li><strong>Hard to change the brand color</strong> — if the client asks to change orange to blue, you have to find and edit every file manually</li>
+  <li><strong>No dark mode</strong> — dark backgrounds with dark text are unreadable; you can't just flip a switch because the colors are all hardcoded</li>
+</ol>
+
+<div class="diagram">
+  <strong>Before Lecture 14 (hardcoded)</strong><br><br>
+  top_header.dart → Colors.orangeAccent ← hardcoded<br>
+  bottom_nav_bar.dart → Colors.orangeAccent ← hardcoded<br>
+  home.dart → Colors.orangeAccent ← hardcoded<br>
+  profile.dart → Colors.orangeAccent ← hardcoded<br>
+  <br>
+  ❌ To change the color you must edit 4+ files<br>
+  ❌ No dark mode possible
+</div>
+
+<div class="diagram">
+  <strong>After Lecture 14 (theme system)</strong><br><br>
+  main.dart → ThemeData(seedColor: Colors.orange)<br>
+  ↓<br>
+  top_header.dart → Theme.of(context).colorScheme.primary<br>
+  bottom_nav_bar.dart → Theme.of(context).colorScheme.primary<br>
+  home.dart → Theme.of(context).colorScheme.primary<br>
+  profile.dart → Theme.of(context).colorScheme.primary<br>
+  <br>
+  ✅ Change the color in ONE place → whole app updates<br>
+  ✅ Dark mode just works
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  2. KEY CONCEPTS                                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>2. Key Concepts Before We Code</h2>
+
+<h3>ThemeData</h3>
+<p><code>ThemeData</code> is a Flutter class that holds all the visual settings for your app —
+colors, font sizes, button shapes, etc. You define it once in <code>MaterialApp</code> and
+it applies to every widget in the entire app.</p>
+
+<h3>ColorScheme</h3>
+<p><code>ColorScheme</code> is a set of coordinated colors inside <code>ThemeData</code>.
+You give it one <strong>seed color</strong> (your brand color) and Flutter automatically
+generates all the other colors — primary, secondary, background, surface, etc. — that look
+good together.</p>
+
+<table>
+  <tr>
+    <th>ColorScheme Property</th>
+    <th>What It's Used For</th>
+    <th>Light Example</th>
+    <th>Dark Example</th>
+  </tr>
+  <tr>
+    <td><code>primary</code></td>
+    <td>Main brand color — buttons, active icons, headers</td>
+    <td>Deep orange</td>
+    <td>Light orange</td>
+  </tr>
+  <tr>
+    <td><code>onPrimary</code></td>
+    <td>Color that looks good ON TOP of primary</td>
+    <td>White</td>
+    <td>Dark brown</td>
+  </tr>
+  <tr>
+    <td><code>surface</code></td>
+    <td>Card and dialog backgrounds</td>
+    <td>White</td>
+    <td>Dark grey</td>
+  </tr>
+  <tr>
+    <td><code>onSurface</code></td>
+    <td>Text on cards/dialogs</td>
+    <td>Black</td>
+    <td>White</td>
+  </tr>
+</table>
+
+<div class="tip">
+  <strong>Rule of thumb:</strong> If you want to place text or an icon <em>on top of</em> a color,
+  use the matching <code>on</code> variant. Example: text on a primary-colored header → use
+  <code>colorScheme.onPrimary</code>.
+</div>
+
+<h3>Theme.of(context)</h3>
+<p>Any widget can call <code>Theme.of(context)</code> to get the current theme.
+From there you can read any color:
+<code>Theme.of(context).colorScheme.primary</code></p>
+
+<h3>ThemeMode</h3>
+<p>Flutter's <code>MaterialApp</code> has a <code>themeMode</code> property that accepts:</p>
+<ul>
+  <li><code>ThemeMode.light</code> — always use the light theme</li>
+  <li><code>ThemeMode.dark</code> — always use the dark theme</li>
+  <li><code>ThemeMode.system</code> — follow the phone's system setting</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  3. FILES WE ARE CHANGING                                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>3. Files We Are Adding or Changing</h2>
+
+<table>
+  <tr>
+    <th>File</th>
+    <th>New or Modified</th>
+    <th>Purpose</th>
+  </tr>
+  <tr>
+    <td><code>lib/providers/theme_provider.dart</code></td>
+    <td>New</td>
+    <td>Manages dark/light mode state, persists the choice</td>
+  </tr>
+  <tr>
+    <td><code>lib/main.dart</code></td>
+    <td>Modified</td>
+    <td>Define light + dark ThemeData, add ThemeProvider, use Consumer</td>
+  </tr>
+  <tr>
+    <td><code>lib/screens/home.dart</code></td>
+    <td>Modified</td>
+    <td>Remove inner MaterialApp, use theme color for price</td>
+  </tr>
+  <tr>
+    <td><code>lib/components/top_header.dart</code></td>
+    <td>Modified</td>
+    <td>Replace hardcoded colors with Theme.of(context)</td>
+  </tr>
+  <tr>
+    <td><code>lib/components/bottom_nav_bar.dart</code></td>
+    <td>Modified</td>
+    <td>Replace hardcoded selected color with Theme.of(context)</td>
+  </tr>
+  <tr>
+    <td><code>lib/screens/profile.dart</code></td>
+    <td>Modified</td>
+    <td>Use theme colors + add dark mode toggle Switch</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  4. STEP 1 — CREATE ThemeProvider                         -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>4. Step 1 — Create ThemeProvider</h2>
+
+<p>Just like <code>CartProvider</code> manages cart items and <code>AuthProvider</code>
+manages login state, <code>ThemeProvider</code> manages whether the app is in dark or
+light mode. It uses the same <code>ChangeNotifier</code> pattern you already know.</p>
+
+<span class="filepath">lib/providers/theme_provider.dart  (new file)</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter/material.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:shared_preferences/shared_preferences.dart'</span>;
+
+<span class="kw">class</span> <span class="cl">ThemeProvider</span> <span class="kw">extends</span> <span class="cl">ChangeNotifier</span> {
+  <span class="kw">bool</span> _isDark = <span class="kw">false</span>;
+
+  <span class="cm">// Public getter — any widget can read this</span>
+  <span class="kw">bool</span> <span class="kw">get</span> isDark =&gt; _isDark;
+
+  <span class="cm">// ThemeMode.light or ThemeMode.dark — used by MaterialApp</span>
+  <span class="cl">ThemeMode</span> <span class="kw">get</span> themeMode =&gt; _isDark ? <span class="cl">ThemeMode</span>.dark : <span class="cl">ThemeMode</span>.light;
+
+  <span class="cm">// Constructor — runs as soon as the provider is created at app start.
+  // This loads the saved preference so the theme is restored immediately.</span>
+  <span class="cl">ThemeProvider</span>() {
+    _loadTheme();
+  }
+
+  <span class="cm">// Read the saved value from SharedPreferences</span>
+  <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">_loadTheme</span>() <span class="kw">async</span> {
+    <span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.<span class="fn">getInstance</span>();
+    _isDark = prefs.<span class="fn">getBool</span>(<span class="st">'is_dark'</span>) ?? <span class="kw">false</span>; <span class="cm">// default: light mode</span>
+    <span class="fn">notifyListeners</span>();
+  }
+
+  <span class="cm">// Called when the user flips the switch in the Profile screen</span>
+  <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">toggleTheme</span>() <span class="kw">async</span> {
+    _isDark = !_isDark; <span class="cm">// flip the value</span>
+    <span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.<span class="fn">getInstance</span>();
+    <span class="kw">await</span> prefs.<span class="fn">setBool</span>(<span class="st">'is_dark'</span>, _isDark); <span class="cm">// save to local storage</span>
+    <span class="fn">notifyListeners</span>(); <span class="cm">// 🔔 tell all widgets: rebuild with the new theme</span>
+  }
+}
+</pre>
+
+<div class="tip">
+  <strong>You already know this pattern!</strong> The <code>ThemeProvider</code> is structurally
+  identical to <code>AuthProvider</code> from Lecture 13 — a private variable, a public getter,
+  and methods that change the variable and call <code>notifyListeners()</code>.
+  The only new thing is <code>ThemeMode</code>.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  5. STEP 2 — UPDATE main.dart                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>5. Step 2 — Update main.dart</h2>
+
+<p>Three things to add here:</p>
+<ol>
+  <li>Register <code>ThemeProvider</code> in <code>MultiProvider</code></li>
+  <li>Define a <code>theme</code> (light) and <code>darkTheme</code> using <code>ThemeData</code></li>
+  <li>Wrap <code>MaterialApp</code> in a <code>Consumer&lt;ThemeProvider&gt;</code> so it rebuilds when the theme changes</li>
+</ol>
+
+<span class="filepath">lib/main.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter/material.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:provider/provider.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/providers/cart_provider.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/providers/auth_provider.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/providers/theme_provider.dart'</span>; <span class="cm">// NEW</span>
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/screens/splash.dart'</span>;
+
+<span class="kw">void</span> <span class="fn">main</span>() {
+  <span class="fn">runApp</span>(
+    <span class="cl">MultiProvider</span>(
+      providers: [
+        <span class="cl">ChangeNotifierProvider</span>(create: (_) =&gt; <span class="cl">CartProvider</span>()),
+        <span class="cl">ChangeNotifierProvider</span>(create: (_) =&gt; <span class="cl">AuthProvider</span>()),
+        <span class="cl">ChangeNotifierProvider</span>(create: (_) =&gt; <span class="cl">ThemeProvider</span>()), <span class="cm">// NEW</span>
+      ],
+
+      <span class="cm">// Consumer listens to ThemeProvider. When toggleTheme() is called,
+      // this Consumer rebuilds — which rebuilds MaterialApp with the new themeMode.</span>
+      child: <span class="cl">Consumer</span>&lt;<span class="cl">ThemeProvider</span>&gt;(
+        builder: (context, themeProvider, child) {
+          <span class="kw">return</span> <span class="cl">MaterialApp</span>(
+            title: <span class="st">'My App'</span>,
+            debugShowCheckedModeBanner: <span class="kw">false</span>,
+
+            <span class="cm">// Which theme to show right now — light or dark</span>
+            themeMode: themeProvider.themeMode, <span class="cm">// NEW</span>
+
+            <span class="cm">// Light theme — used when isDark is false</span>
+            theme: <span class="cl">ThemeData</span>(
+              colorScheme: <span class="cl">ColorScheme</span>.<span class="fn">fromSeed</span>(
+                seedColor: <span class="cl">Colors</span>.orange, <span class="cm">// our brand color</span>
+              ),
+              useMaterial3: <span class="kw">true</span>,
+            ),
+
+            <span class="cm">// Dark theme — used when isDark is true
+            // Same seed color, but brightness: Brightness.dark tells
+            // Flutter to generate dark background colors automatically.</span>
+            darkTheme: <span class="cl">ThemeData</span>(
+              colorScheme: <span class="cl">ColorScheme</span>.<span class="fn">fromSeed</span>(
+                seedColor: <span class="cl">Colors</span>.orange,
+                brightness: <span class="cl">Brightness</span>.dark, <span class="cm">// NEW — makes Flutter generate dark colors</span>
+              ),
+              useMaterial3: <span class="kw">true</span>,
+            ),
+
+            home: <span class="kw">const</span> <span class="cl">SplashScreen</span>(),
+          );
+        },
+      ),
+    ),
+  );
+}
+</pre>
+
+<div class="tip">
+  <strong>Why Consumer here?</strong> <code>MaterialApp</code> is the root of the widget tree.
+  When <code>themeMode</code> changes, we need the whole tree to rebuild with the new theme.
+  Wrapping <code>MaterialApp</code> in a <code>Consumer&lt;ThemeProvider&gt;</code> makes exactly
+  that happen — the moment <code>toggleTheme()</code> is called, the consumer rebuilds
+  <code>MaterialApp</code> with the new <code>themeMode</code>.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  6. STEP 3 — FIX home.dart                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>6. Step 3 — Fix home.dart (Important!)</h2>
+
+<p>Before this lecture, the <code>MyApp</code> widget in <code>home.dart</code> returned its
+own <code>MaterialApp</code> — a widget inside a widget. This created <strong>two</strong>
+<code>MaterialApp</code>s in the tree, and the inner one had no theme defined, so our
+theme from <code>main.dart</code> would not apply to the home screens.</p>
+
+<p>The fix is simple: remove the inner <code>MaterialApp</code> and just return a
+<code>Scaffold</code> directly. The outer <code>MaterialApp</code> in <code>main.dart</code>
+is already wrapping everything.</p>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Before — two MaterialApps</h4>
+    <pre style="font-size:11px; margin:4px 0"><span class="kw">return</span> <span class="cl">MaterialApp</span>(    <span class="cm">// ← extra one!</span>
+  home: <span class="cl">Scaffold</span>(
+    appBar: ...,
+    body: ...,
+  ),
+);</pre>
+    <p>The inner MaterialApp has no <code>theme</code>, so our custom colors are ignored.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ After — one MaterialApp in main.dart</h4>
+    <pre style="font-size:11px; margin:4px 0"><span class="kw">return</span> <span class="cl">Scaffold</span>(    <span class="cm">// ← just the Scaffold</span>
+  appBar: ...,
+  body: ...,
+);</pre>
+    <p>Now the theme from <code>main.dart</code> flows all the way down to every widget.</p>
+  </div>
+</div>
+
+<p>Also update the product price color in <code>_ProductCard</code>:</p>
+
+<span class="filepath">lib/screens/home.dart  (key change in _ProductCard)</span>
+<pre>
+<span class="cm">// At the top of the build method, read the primary color once</span>
+<span class="kw">final</span> primaryColor = <span class="cl">Theme</span>.<span class="fn">of</span>(context).colorScheme.primary;
+
+<span class="cm">// Then use it for the price text style</span>
+<span class="cl">Text</span>(
+  <span class="st">'\$</span>${product.price.<span class="fn">toStringAsFixed</span>(<span class="num">2</span>)}<span class="st">'</span>,
+  style: <span class="cl">TextStyle</span>(
+    color: primaryColor,      <span class="cm">// was: Colors.orangeAccent</span>
+    fontWeight: <span class="cl">FontWeight</span>.bold,
+    fontSize: <span class="num">16</span>,
+  ),
+),
+</pre>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  7. STEP 4 — UPDATE TopHeader                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>7. Step 4 — Update TopHeader</h2>
+
+<p>Replace the two hardcoded <code>Colors.orangeAccent</code> and <code>Colors.white</code>
+values with theme colors. Notice we use <strong>two</strong> theme values here:
+<code>primary</code> for the background and <code>onPrimary</code> for the text/icons
+on top of it.</p>
+
+<span class="filepath">lib/components/top_header.dart</span>
+<pre>
+<span class="cm">// Read both colors at the top of the build method</span>
+<span class="kw">final</span> primaryColor   = <span class="cl">Theme</span>.<span class="fn">of</span>(context).colorScheme.primary;
+<span class="kw">final</span> onPrimaryColor = <span class="cl">Theme</span>.<span class="fn">of</span>(context).colorScheme.onPrimary;
+
+<span class="kw">return</span> <span class="cl">Container</span>(
+  color: primaryColor, <span class="cm">// was: Colors.orangeAccent</span>
+  child: <span class="cl">Row</span>(
+    children: [
+      <span class="cl">IconButton</span>(
+        icon: <span class="cl">Icon</span>(<span class="cl">Icons</span>.menu, color: onPrimaryColor), <span class="cm">// was: Colors.white</span>
+      ),
+      <span class="cl">Text</span>(
+        title,
+        style: <span class="cl">TextStyle</span>(color: onPrimaryColor), <span class="cm">// was: Colors.white</span>
+      ),
+      <span class="cl">IconButton</span>(
+        icon: <span class="cl">Icon</span>(<span class="cl">Icons</span>.notifications_outlined,
+                   color: onPrimaryColor), <span class="cm">// was: Colors.white</span>
+      ),
+    ],
+  ),
+);
+</pre>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  8. STEP 5 — UPDATE BottomNavBar                          -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>8. Step 5 — Update BottomNavBar</h2>
+
+<p>One line change — replace the hardcoded <code>Colors.orangeAccent</code> with the
+theme primary color. We also remove <code>backgroundColor: Colors.white</code> so that
+Material3 can automatically give it a dark background in dark mode.</p>
+
+<span class="filepath">lib/components/bottom_nav_bar.dart  (key change)</span>
+<pre>
+<span class="kw">return</span> <span class="cl">BottomNavigationBar</span>(
+  currentIndex: currentIndex,
+  onTap: onTap,
+
+  <span class="cm">// was: Colors.orangeAccent</span>
+  selectedItemColor: <span class="cl">Theme</span>.<span class="fn">of</span>(context).colorScheme.primary,
+  unselectedItemColor: <span class="cl">Colors</span>.grey,
+  <span class="cm">// backgroundColor removed — Material3 sets this automatically</span>
+
+  type: <span class="cl">BottomNavigationBarType</span>.fixed,
+  items: <span class="kw">const</span> [...],
+);
+</pre>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  9. STEP 6 — UPDATE ProfileScreen                        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>9. Step 6 — Update ProfileScreen + Add Dark Mode Toggle</h2>
+
+<p>Two things to do in the profile screen:</p>
+<ol>
+  <li>Replace hardcoded colors with theme colors (avatar, info tile icons)</li>
+  <li>Add a dark mode toggle <code>Switch</code> widget</li>
+</ol>
+
+<span class="filepath">lib/screens/profile.dart  (key parts)</span>
+<pre>
+<span class="cm">// 1. Read both providers at the top of build()</span>
+<span class="kw">final</span> themeProvider = context.<span class="fn">watch</span>&lt;<span class="cl">ThemeProvider</span>&gt;();
+<span class="kw">final</span> primaryColor  = <span class="cl">Theme</span>.<span class="fn">of</span>(context).colorScheme.primary;
+
+<span class="cm">// 2. Avatar now uses theme colors</span>
+<span class="cl">CircleAvatar</span>(
+  backgroundColor: primaryColor,    <span class="cm">// was: Colors.orangeAccent</span>
+  child: <span class="cl">Text</span>(
+    ...,
+    style: <span class="cl">TextStyle</span>(
+      color: <span class="cl">Theme</span>.<span class="fn">of</span>(context).colorScheme.onPrimary, <span class="cm">// was: Colors.white</span>
+    ),
+  ),
+),
+
+<span class="cm">// 3. Dark mode toggle — add this row in the Column</span>
+<span class="cl">Row</span>(
+  mainAxisAlignment: <span class="cl">MainAxisAlignment</span>.spaceBetween,
+  children: [
+    <span class="cl">Row</span>(
+      children: [
+        <span class="cl">Icon</span>(
+          <span class="cm">// Show different icon based on current mode</span>
+          themeProvider.isDark ? <span class="cl">Icons</span>.dark_mode : <span class="cl">Icons</span>.light_mode,
+          color: primaryColor,
+        ),
+        <span class="kw">const</span> <span class="cl">SizedBox</span>(width: <span class="num">12</span>),
+        <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Dark Mode'</span>, style: <span class="cl">TextStyle</span>(fontSize: <span class="num">16</span>)),
+      ],
+    ),
+    <span class="cm">// Switch reads isDark and calls toggleTheme() when the user flips it</span>
+    <span class="cl">Switch</span>(
+      value: themeProvider.isDark,
+      onChanged: (_) =&gt; context.<span class="fn">read</span>&lt;<span class="cl">ThemeProvider</span>&gt;().<span class="fn">toggleTheme</span>(),
+      activeThumbColor: primaryColor,
+    ),
+  ],
+),
+</pre>
+
+<div class="tip">
+  <strong>Why <code>context.read</code> inside onChanged?</strong>
+  We use <code>context.watch</code> at the top of <code>build()</code> to <em>listen</em> for
+  changes (so the icon updates). We use <code>context.read</code> inside the callback to
+  <em>call</em> a method without subscribing. This is the same pattern from Lecture 12.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  10. HOW IT ALL WORKS TOGETHER                            -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>10. How It All Works Together</h2>
+
+<div class="diagram">
+  User flips the Switch in ProfileScreen<br>
+  ↓<br>
+  <code>context.read&lt;ThemeProvider&gt;().toggleTheme()</code><br>
+  ↓<br>
+  <code>_isDark</code> flips · saved to <strong>SharedPreferences</strong> · <code>notifyListeners()</code><br>
+  ↓<br>
+  <code>Consumer&lt;ThemeProvider&gt;</code> in <strong>main.dart</strong> rebuilds<br>
+  ↓<br>
+  <code>MaterialApp</code> gets new <code>themeMode</code> (light ↔ dark)<br>
+  ↓<br>
+  <strong>Every widget</strong> that uses <code>Theme.of(context)</code> gets new colors ✅<br>
+  <br>
+  Next app restart → ThemeProvider constructor calls <code>_loadTheme()</code><br>
+  → reads saved <code>is_dark</code> from SharedPreferences → restores the right theme ✅
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  11. THEME CHEAT SHEET                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>11. Quick Reference — Theme Cheat Sheet</h2>
+
+<table>
+  <tr>
+    <th>What You Want to Do</th>
+    <th>Code</th>
+  </tr>
+  <tr>
+    <td>Get the brand/primary color</td>
+    <td><code>Theme.of(context).colorScheme.primary</code></td>
+  </tr>
+  <tr>
+    <td>Get the color to put ON the primary color</td>
+    <td><code>Theme.of(context).colorScheme.onPrimary</code></td>
+  </tr>
+  <tr>
+    <td>Get the card/surface background color</td>
+    <td><code>Theme.of(context).colorScheme.surface</code></td>
+  </tr>
+  <tr>
+    <td>Check if dark mode is active</td>
+    <td><code>context.watch&lt;ThemeProvider&gt;().isDark</code></td>
+  </tr>
+  <tr>
+    <td>Toggle dark/light mode</td>
+    <td><code>context.read&lt;ThemeProvider&gt;().toggleTheme()</code></td>
+  </tr>
+  <tr>
+    <td>Define light theme (main.dart)</td>
+    <td><code>ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange))</code></td>
+  </tr>
+  <tr>
+    <td>Define dark theme (main.dart)</td>
+    <td><code>ThemeData(colorScheme: ColorScheme.fromSeed(seedColor: Colors.orange, brightness: Brightness.dark))</code></td>
+  </tr>
+  <tr>
+    <td>Apply the active theme to MaterialApp</td>
+    <td><code>themeMode: themeProvider.themeMode</code></td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  12. COMMON MISTAKES                                      -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>12. Common Mistakes to Avoid</h2>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Two MaterialApps in the tree</h4>
+    <pre style="font-size:11px; margin:4px 0"><span class="cm">// main.dart</span>
+MaterialApp(theme: myTheme, ...)
+
+<span class="cm">// home.dart — another one!</span>
+MaterialApp(home: Scaffold(...))</pre>
+    <p>The inner MaterialApp blocks the outer theme. Widgets inside it will never see your <code>ThemeData</code>.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ One MaterialApp, return Scaffold</h4>
+    <pre style="font-size:11px; margin:4px 0"><span class="cm">// main.dart</span>
+MaterialApp(theme: myTheme, ...)
+
+<span class="cm">// home.dart — plain Scaffold</span>
+Scaffold(
+  appBar: ..., body: ...,
+)</pre>
+    <p>The theme flows down to every widget in the tree.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Calling toggleTheme with watch</h4>
+    <pre style="font-size:11px; margin:4px 0">Switch(
+  onChanged: (_) =>
+    context.watch&lt;ThemeProvider&gt;()
+           .toggleTheme(), // ⚠️
+)</pre>
+    <p><code>context.watch</code> is for reading in <code>build()</code>. Using it inside callbacks causes issues.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Use read inside callbacks</h4>
+    <pre style="font-size:11px; margin:4px 0">Switch(
+  onChanged: (_) =>
+    context.read&lt;ThemeProvider&gt;()
+           .toggleTheme(), // ✅
+)</pre>
+    <p><code>context.read</code> is for calling methods. <code>context.watch</code> is for reading state in <code>build()</code>.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Forgetting Consumer in main.dart</h4>
+    <pre style="font-size:11px; margin:4px 0"><span class="cm">// Without Consumer:</span>
+MaterialApp(
+  themeMode: ThemeMode.light, // hardcoded!
+  ...
+)</pre>
+    <p><code>MaterialApp</code> never rebuilds — flipping the switch does nothing visible.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Wrap MaterialApp in Consumer</h4>
+    <pre style="font-size:11px; margin:4px 0">Consumer&lt;ThemeProvider&gt;(
+  builder: (_, tp, __) => MaterialApp(
+    themeMode: tp.themeMode, // reactive!
+    ...
+  ),
+)</pre>
+    <p>Now MaterialApp rebuilds whenever <code>ThemeProvider</code> calls <code>notifyListeners()</code>.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  13. SUMMARY OF CHANGES                                   -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>13. Summary of Changes Made This Lecture</h2>
+
+<table>
+  <tr>
+    <th>File</th>
+    <th>What Changed</th>
+    <th>Why</th>
+  </tr>
+  <tr>
+    <td><code>theme_provider.dart</code></td>
+    <td>New file — manages <code>isDark</code>, <code>themeMode</code>, <code>toggleTheme()</code></td>
+    <td>Central place to control and persist the theme choice</td>
+  </tr>
+  <tr>
+    <td><code>main.dart</code></td>
+    <td>Added <code>ThemeProvider</code>, <code>theme</code>, <code>darkTheme</code>, <code>Consumer</code></td>
+    <td>Define the two themes and make MaterialApp react to changes</td>
+  </tr>
+  <tr>
+    <td><code>home.dart</code></td>
+    <td>Removed inner <code>MaterialApp</code>, price color uses theme</td>
+    <td>Allow the outer theme to flow into the home screens</td>
+  </tr>
+  <tr>
+    <td><code>top_header.dart</code></td>
+    <td>Replaced <code>Colors.orangeAccent</code> + <code>Colors.white</code> with theme colors</td>
+    <td>Header now adapts automatically in dark mode</td>
+  </tr>
+  <tr>
+    <td><code>bottom_nav_bar.dart</code></td>
+    <td>Replaced <code>Colors.orangeAccent</code> with theme primary</td>
+    <td>Active tab color adapts to the theme</td>
+  </tr>
+  <tr>
+    <td><code>profile.dart</code></td>
+    <td>Theme colors + new dark mode <code>Switch</code> row</td>
+    <td>Avatar/icons adapt to theme; user can toggle dark mode</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  PRACTICE TASK                                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>Practice Task</h2>
+<ol>
+  <li>Run the app — it should look the same as before (light mode, orange header)</li>
+  <li>Go to <strong>Profile tab</strong> — you should see a <strong>Dark Mode</strong> row with a switch</li>
+  <li>Flip the switch — the entire app should switch to dark mode instantly</li>
+  <li>Flip it back — app returns to light mode</li>
+  <li>Enable dark mode, then <strong>restart the app</strong> — it should reopen in dark mode (preference was saved)</li>
+  <li><strong>Challenge:</strong> In <code>main.dart</code>, change the <code>seedColor</code> from
+      <code>Colors.orange</code> to <code>Colors.indigo</code> — notice every screen updates
+      at once. Then change it back to orange.</li>
+  <li><strong>Challenge:</strong> Check the <code>login_screen.dart</code> file.
+      Does it still have any hardcoded <code>Colors.orangeAccent</code>? Try replacing them
+      with <code>Theme.of(context).colorScheme.primary</code> the same way we did here.</li>
+</ol>
+
+<div class="success">
+  <strong>Key Takeaway:</strong> Theming is about separation of concerns — define your colors
+  once in <code>ThemeData</code>, then read them everywhere with <code>Theme.of(context)</code>.
+  The dark mode toggle combines three things you already know: <strong>Provider</strong>
+  (Lecture 12) to manage state, <strong>SharedPreferences</strong> (Lecture 7) to save the
+  choice, and <strong>Consumer</strong> (Lecture 12) to trigger a rebuild of <code>MaterialApp</code>.
+  No new Flutter APIs were needed — just existing knowledge applied to a new problem.
+</div>
+
+</body>
+</html>

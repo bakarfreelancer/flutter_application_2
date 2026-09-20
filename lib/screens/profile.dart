@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_application_2/providers/auth_provider.dart';
+import 'package:flutter_application_2/providers/theme_provider.dart'; // NEW (Lecture 14)
 import 'package:flutter_application_2/services/user_storage.dart';
 import 'package:flutter_application_2/screens/login_screen.dart';
 
@@ -77,6 +78,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Get the logged-in user's email from AuthProvider
     final email = context.watch<AuthProvider>().email;
 
+    // Lecture 14: Get theme info from ThemeProvider
+    // isDark tells us the current state so we can set the Switch value
+    final themeProvider = context.watch<ThemeProvider>();
+
+    // Lecture 14: Get the primary color from the active theme
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
     return Padding(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -86,14 +94,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Center(
             child: CircleAvatar(
               radius: 48,
-              backgroundColor: Colors.orangeAccent,
+              backgroundColor: primaryColor, // was: Colors.orangeAccent
               child: Text(
                 name.isNotEmpty
                     ? name[0].toUpperCase()
                     : email.isNotEmpty
                         ? email[0].toUpperCase()
                         : '?',
-                style: const TextStyle(fontSize: 40, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 40,
+                  color: Theme.of(context).colorScheme.onPrimary, // was: Colors.white
+                ),
               ),
             ),
           ),
@@ -122,6 +133,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
 
           const Spacer(),
+
+          // ── Lecture 14: Dark Mode Toggle ────────────────────────────────────
+          // A simple row with a label on the left and a Switch on the right.
+          // When the user flips it, ThemeProvider.toggleTheme() is called,
+          // which saves the preference and notifies all listeners to rebuild.
+          Container(
+            decoration: BoxDecoration(
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      themeProvider.isDark
+                          ? Icons.dark_mode
+                          : Icons.light_mode,
+                      color: primaryColor,
+                    ),
+                    const SizedBox(width: 12),
+                    const Text('Dark Mode', style: TextStyle(fontSize: 16)),
+                  ],
+                ),
+                // Switch reads isDark from ThemeProvider and calls toggleTheme() on change
+                Switch(
+                  value: themeProvider.isDark,
+                  onChanged: (_) => context.read<ThemeProvider>().toggleTheme(),
+                  activeThumbColor: primaryColor,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // ────────────────────────────────────────────────────────────────────
 
           // Logout Button at the bottom
           SizedBox(
@@ -157,7 +205,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, color: Colors.orangeAccent),
+        Icon(icon, color: Theme.of(context).colorScheme.primary), // was: Colors.orangeAccent
         const SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
