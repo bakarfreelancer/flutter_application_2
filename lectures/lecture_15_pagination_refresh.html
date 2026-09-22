@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 15 – Pull-to-Refresh &amp; Pagination</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px; color: #1a1a1a; background: #fff;
+      padding: 40px; max-width: 860px; margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800; color: white;
+      padding: 28px 32px; border-radius: 8px; margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+    .fn  { color: #f9e2af; }
+
+    .tip  { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+    .warn { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+    .success { background: #e8f5e9; border-left: 4px solid #388e3c; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .success strong { color: #2e7d32; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2.2; margin: 12px 0; text-align: center; color: #444; }
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+    .box { background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; padding: 14px; font-size: 13px; }
+    .box h4 { margin-bottom: 8px; color: #444; }
+    .bad  { border-top: 3px solid #e53935; }
+    .good { border-top: 3px solid #43a047; }
+
+    @media print {
+      body { padding: 20px; }
+      pre { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  HEADER                                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <div class="course">BS — MOBILE APPLICATION DEVELOPMENT · FLUTTER</div>
+  <h1>Lecture 15 — Pull-to-Refresh &amp; Pagination</h1>
+  <div class="meta">Topics: RefreshIndicator · ScrollController · API Pagination · Infinite Scroll · State Flags</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  OBJECTIVES                                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ul>
+    <li>Understand what pagination is and why it matters for performance</li>
+    <li>Use <code>limit</code> and <code>skip</code> URL parameters to load data page by page</li>
+    <li>Add pull-to-refresh using Flutter's built-in <code>RefreshIndicator</code> widget</li>
+    <li>Detect when the user reaches the bottom of a list using <code>ScrollController</code></li>
+    <li>Append new items to an existing list without clearing it (<code>list.addAll()</code>)</li>
+    <li>Manage multiple state flags: <code>isLoading</code>, <code>isLoadingMore</code>, <code>hasMore</code></li>
+    <li>Show a bottom spinner while the next page loads</li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  1. THE PROBLEM                                            -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>1. The Problem — Loading Everything at Once</h2>
+
+<p>Our home screen currently fetches all 20 products in one go and displays them.
+Two problems exist:</p>
+
+<ol>
+  <li><strong>No refresh:</strong> If the product catalogue changes, the only way to see
+      the update is to restart the app.</li>
+  <li><strong>Poor performance at scale:</strong> Loading 20 items is fine, but real apps
+      have thousands of products. Loading them all at once is slow and wastes memory.</li>
+</ol>
+
+<p>The industry solution is <strong>pagination</strong> — load a small batch (e.g. 10 items),
+and when the user scrolls to the bottom, load the next batch. Combined with
+<strong>pull-to-refresh</strong>, the app feels live and responsive.</p>
+
+<div class="diagram">
+  <strong>Before:</strong> load all 20 at once, no way to refresh<br><br>
+  App starts → fetch 20 products → show them → done ❌<br><br>
+  <strong>After:</strong> load 10 at a time, pull-down to reload<br><br>
+  App starts → fetch products 1-10 → show them<br>
+  User scrolls down → fetch products 11-20 → append<br>
+  User scrolls down → fetch products 21-30 → append ...<br>
+  User pulls down → reload from product 1 ✅
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  2. HOW API PAGINATION WORKS                               -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>2. How API Pagination Works — limit &amp; skip</h2>
+
+<p>The dummyjson.com API supports two query parameters for pagination:</p>
+
+<table>
+  <tr>
+    <th>Parameter</th>
+    <th>Meaning</th>
+    <th>Example</th>
+  </tr>
+  <tr>
+    <td><code>limit</code></td>
+    <td>How many items to return</td>
+    <td><code>limit=10</code> → return 10 items</td>
+  </tr>
+  <tr>
+    <td><code>skip</code></td>
+    <td>How many items to skip from the start</td>
+    <td><code>skip=20</code> → skip the first 20, start from item 21</td>
+  </tr>
+</table>
+
+<p>By combining them you can request any page:</p>
+
+<table>
+  <tr>
+    <th>Page</th>
+    <th>URL</th>
+    <th>Items returned</th>
+  </tr>
+  <tr>
+    <td>Page 1</td>
+    <td><code>/products?limit=10&amp;skip=0</code></td>
+    <td>Items 1 – 10</td>
+  </tr>
+  <tr>
+    <td>Page 2</td>
+    <td><code>/products?limit=10&amp;skip=10</code></td>
+    <td>Items 11 – 20</td>
+  </tr>
+  <tr>
+    <td>Page 3</td>
+    <td><code>/products?limit=10&amp;skip=20</code></td>
+    <td>Items 21 – 30</td>
+  </tr>
+  <tr>
+    <td>Last page (6 items left)</td>
+    <td><code>/products?limit=10&amp;skip=90</code></td>
+    <td>Items 91 – 96 (only 6)</td>
+  </tr>
+</table>
+
+<div class="tip">
+  <strong>How do we know we've reached the last page?</strong> When the API returns
+  <em>fewer</em> items than our <code>limit</code>, there is no next page.
+  If we asked for 10 but got 6, we're done. We track this with a <code>_hasMore</code> flag.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  3. STATE VARIABLES WE NEED                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>3. The State Variables We Need</h2>
+
+<p>Unlike the old <code>FutureBuilder</code> approach (one future, Flutter handles states),
+we are now managing the state ourselves. We need five variables:</p>
+
+<table>
+  <tr>
+    <th>Variable</th>
+    <th>Type</th>
+    <th>Purpose</th>
+  </tr>
+  <tr>
+    <td><code>_products</code></td>
+    <td><code>List&lt;Product&gt;</code></td>
+    <td>All products loaded so far (grows as pages are added)</td>
+  </tr>
+  <tr>
+    <td><code>_skip</code></td>
+    <td><code>int</code></td>
+    <td>How many products to skip for the <em>next</em> API call</td>
+  </tr>
+  <tr>
+    <td><code>_isLoading</code></td>
+    <td><code>bool</code></td>
+    <td>True while the <strong>first</strong> page loads (shows full-screen spinner)</td>
+  </tr>
+  <tr>
+    <td><code>_isLoadingMore</code></td>
+    <td><code>bool</code></td>
+    <td>True while a <strong>subsequent</strong> page loads (shows spinner at bottom)</td>
+  </tr>
+  <tr>
+    <td><code>_hasMore</code></td>
+    <td><code>bool</code></td>
+    <td>False when the API returned fewer items than <code>_pageSize</code> — no more pages</td>
+  </tr>
+</table>
+
+<div class="tip">
+  <strong>Why two loading flags?</strong> <code>_isLoading</code> is for the very first load
+  — we show a full-screen spinner and nothing else. <code>_isLoadingMore</code> is for
+  subsequent pages — we keep the existing products visible and just add a small spinner at
+  the bottom of the list.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  4. FILES WE ARE CHANGING                                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>4. Files We Are Changing</h2>
+
+<table>
+  <tr>
+    <th>File</th>
+    <th>Change</th>
+  </tr>
+  <tr>
+    <td><code>lib/services/product_service.dart</code></td>
+    <td>Add <code>limit</code> and <code>skip</code> parameters to <code>getProducts()</code></td>
+  </tr>
+  <tr>
+    <td><code>lib/screens/home.dart</code></td>
+    <td>Replace <code>FutureBuilder</code> with manual state management, add <code>RefreshIndicator</code> and <code>ScrollController</code></td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  5. STEP 1 — UPDATE ProductService                        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>5. Step 1 — Update ProductService</h2>
+
+<p>A small but important change: add <code>limit</code> and <code>skip</code> named
+parameters to <code>getProducts()</code> with sensible defaults.</p>
+
+<span class="filepath">lib/services/product_service.dart</span>
+<pre>
+<span class="cm">// Before (Lecture 10):
+// static Future&lt;List&lt;Product&gt;&gt; getProducts() async {
+//   final response = await http.get(Uri.parse('$_baseUrl/products?limit=20'));
+
+// After (Lecture 15): named parameters with default values</span>
+<span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="cl">List</span>&lt;<span class="cl">Product</span>&gt;&gt; <span class="fn">getProducts</span>({
+  <span class="kw">int</span> limit = <span class="num">10</span>,
+  <span class="kw">int</span> skip  = <span class="num">0</span>,
+}) <span class="kw">async</span> {
+  <span class="kw">final</span> response = <span class="kw">await</span> http.<span class="fn">get</span>(
+    <span class="cl">Uri</span>.<span class="fn">parse</span>(<span class="st">'$_baseUrl/products?limit=$limit&amp;skip=$skip'</span>),
+  );
+
+  <span class="kw">if</span> (response.statusCode == <span class="num">200</span>) {
+    <span class="kw">final</span> data = <span class="fn">jsonDecode</span>(response.body);
+    <span class="kw">final</span> <span class="cl">List</span> productsJson = data[<span class="st">'products'</span>];
+    <span class="kw">return</span> productsJson.<span class="fn">map</span>((p) =&gt; <span class="cl">Product</span>.<span class="fn">fromJson</span>(p)).<span class="fn">toList</span>();
+  }
+
+  <span class="kw">throw</span> <span class="cl">Exception</span>(<span class="st">'Failed to load products'</span>);
+}
+</pre>
+
+<div class="tip">
+  <strong>Named parameters with defaults:</strong> Because we used <code>{int limit = 10, int skip = 0}</code>,
+  existing code that calls <code>ProductService.getProducts()</code> with no arguments still works —
+  it just gets the first 10 items. We only pass explicit values when we want a specific page.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  6. STEP 2 — REWRITE _HomeContent                         -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>6. Step 2 — Rewrite _HomeContent State</h2>
+
+<p>We replace the single <code>Future</code> with the five state variables and a
+<code>ScrollController</code>. The controller is created once and cleaned up in
+<code>dispose()</code>.</p>
+
+<span class="filepath">lib/screens/home.dart — state variables &amp; lifecycle</span>
+<pre>
+<span class="kw">class</span> <span class="cl">_HomeContentState</span> <span class="kw">extends</span> <span class="cl">State</span>&lt;<span class="cl">_HomeContent</span>&gt; {
+
+  <span class="cm">// Products loaded so far — grows as pages are appended</span>
+  <span class="kw">final</span> <span class="cl">List</span>&lt;<span class="cl">Product</span>&gt; _products = [];
+
+  <span class="kw">static const int</span> _pageSize = <span class="num">10</span>; <span class="cm">// items per page</span>
+  <span class="kw">int</span>  _skip          = <span class="num">0</span>;     <span class="cm">// how many to skip for the next fetch</span>
+  <span class="kw">bool</span> _isLoading     = <span class="kw">true</span>;  <span class="cm">// first load in progress</span>
+  <span class="kw">bool</span> _isLoadingMore = <span class="kw">false</span>; <span class="cm">// next page in progress</span>
+  <span class="kw">bool</span> _hasMore       = <span class="kw">true</span>;  <span class="cm">// false when no more pages exist</span>
+  <span class="cl">String</span>? _error;              <span class="cm">// non-null if the first load failed</span>
+
+  <span class="cm">// ScrollController — we attach this to ListView to detect scroll position</span>
+  <span class="kw">final</span> <span class="cl">ScrollController</span> _scrollController = <span class="cl">ScrollController</span>();
+
+  <span class="kw">@override</span>
+  <span class="kw">void</span> <span class="fn">initState</span>() {
+    <span class="kw">super</span>.<span class="fn">initState</span>();
+    <span class="fn">_loadProducts</span>();                        <span class="cm">// fetch page 1</span>
+    _scrollController.<span class="fn">addListener</span>(_onScroll); <span class="cm">// watch for scroll events</span>
+  }
+
+  <span class="kw">@override</span>
+  <span class="kw">void</span> <span class="fn">dispose</span>() {
+    _scrollController.<span class="fn">dispose</span>(); <span class="cm">// always clean up controllers!</span>
+    <span class="kw">super</span>.<span class="fn">dispose</span>();
+  }
+}
+</pre>
+
+<div class="warn">
+  <strong>Always call dispose()!</strong> If you create a <code>ScrollController</code>
+  (or <code>TextEditingController</code>, <code>AnimationController</code>, etc.) you
+  <em>must</em> call <code>.dispose()</code> when the widget is removed from the tree.
+  Forgetting causes memory leaks — the controller keeps listening to scroll events
+  forever, even after the screen is gone.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  7. STEP 3 — THE SCROLL LISTENER                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>7. Step 3 — The Scroll Listener</h2>
+
+<p>The scroll listener is called every time the user moves their finger on the list.
+We check: <em>are we near the bottom, not already loading, and is there more data?</em>
+If all three are true, we load the next page.</p>
+
+<span class="filepath">lib/screens/home.dart — _onScroll</span>
+<pre>
+<span class="kw">void</span> <span class="fn">_onScroll</span>() {
+  <span class="cm">// pixels        = how far the user has scrolled (from the top)
+  // maxScrollExtent = the total scrollable distance of the list
+  //
+  // When pixels == maxScrollExtent the user is at the very bottom.
+  // We subtract 200 to trigger loading a little BEFORE they hit the end,
+  // so the next page appears seamlessly without a blank gap.</span>
+  <span class="kw">final</span> atBottom =
+      _scrollController.position.pixels &gt;=
+      _scrollController.position.maxScrollExtent - <span class="num">200</span>;
+
+  <span class="kw">if</span> (atBottom &amp;&amp; !_isLoadingMore &amp;&amp; _hasMore) {
+    <span class="fn">_loadMore</span>();
+  }
+}
+</pre>
+
+<div class="diagram">
+  <strong>ScrollController position visualised</strong><br><br>
+  ┌──────────────────────────┐  ← pixels = 0 (top of list)<br>
+  │   Product 1              │<br>
+  │   Product 2              │<br>
+  │   Product 3              │<br>
+  │   ...                    │<br>
+  └──────────────────────────┘<br>
+  &nbsp;&nbsp;&nbsp;↑ user scrolls down ↓<br>
+  ┌──────────────────────────┐  ← pixels = maxScrollExtent - 200<br>
+  │   Product 8              │  &nbsp; ← _loadMore() triggered here<br>
+  │   Product 9              │<br>
+  │   Product 10             │<br>
+  │   ⏳ Loading spinner     │  ← pixels = maxScrollExtent (bottom)<br>
+  └──────────────────────────┘
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  8. STEP 4 — LOADING FUNCTIONS                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>8. Step 4 — The Two Loading Functions</h2>
+
+<p>We split loading into two separate functions so the logic stays clear:</p>
+
+<h3>_loadProducts() — first load &amp; pull-to-refresh</h3>
+
+<span class="filepath">lib/screens/home.dart — _loadProducts</span>
+<pre>
+<span class="cm">// Called on app start AND when the user pulls down to refresh.
+// Always resets back to page 1.</span>
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">_loadProducts</span>() <span class="kw">async</span> {
+  <span class="fn">setState</span>(() {
+    _isLoading = <span class="kw">true</span>;
+    _error     = <span class="kw">null</span>;
+  });
+
+  <span class="kw">try</span> {
+    <span class="kw">final</span> results = <span class="kw">await</span> <span class="cl">ProductService</span>.<span class="fn">getProducts</span>(
+      limit: _pageSize,
+      skip: <span class="num">0</span>, <span class="cm">// always start from the beginning</span>
+    );
+
+    <span class="fn">setState</span>(() {
+      _products.<span class="fn">clear</span>();         <span class="cm">// throw away old products</span>
+      _products.<span class="fn">addAll</span>(results); <span class="cm">// put in the fresh first page</span>
+      _skip    = results.length;  <span class="cm">// next fetch will skip past these</span>
+      _hasMore = results.length == _pageSize; <span class="cm">// fewer = last page</span>
+      _isLoading = <span class="kw">false</span>;
+    });
+  } <span class="kw">catch</span> (e) {
+    <span class="fn">setState</span>(() {
+      _error     = e.<span class="fn">toString</span>();
+      _isLoading = <span class="kw">false</span>;
+    });
+  }
+}
+</pre>
+
+<h3>_loadMore() — next page</h3>
+
+<span class="filepath">lib/screens/home.dart — _loadMore</span>
+<pre>
+<span class="cm">// Called when the user scrolls near the bottom.
+// APPENDS the next page — does NOT clear the existing list.</span>
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">_loadMore</span>() <span class="kw">async</span> {
+  <span class="fn">setState</span>(() =&gt; _isLoadingMore = <span class="kw">true</span>);
+
+  <span class="kw">try</span> {
+    <span class="kw">final</span> results = <span class="kw">await</span> <span class="cl">ProductService</span>.<span class="fn">getProducts</span>(
+      limit: _pageSize,
+      skip: _skip, <span class="cm">// skip past everything already shown</span>
+    );
+
+    <span class="fn">setState</span>(() {
+      _products.<span class="fn">addAll</span>(results); <span class="cm">// APPEND — don't clear!</span>
+      _skip    += results.length;  <span class="cm">// advance the pointer</span>
+      _hasMore  = results.length == _pageSize;
+      _isLoadingMore = <span class="kw">false</span>;
+    });
+  } <span class="kw">catch</span> (_) {
+    <span class="cm">// Pagination failure: just hide the spinner, let user try again by scrolling</span>
+    <span class="fn">setState</span>(() =&gt; _isLoadingMore = <span class="kw">false</span>);
+  }
+}
+</pre>
+
+<div class="tip">
+  <strong>The key difference:</strong> <code>_loadProducts()</code> calls
+  <code>_products.clear()</code> before adding. <code>_loadMore()</code> only calls
+  <code>_products.addAll()</code>. Never clear in <code>_loadMore()</code> — the user would
+  see all existing products disappear while waiting.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  9. STEP 5 — THE BUILD METHOD                              -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>9. Step 5 — The Build Method</h2>
+
+<p>The build method handles three states and wraps the list in
+<code>RefreshIndicator</code>.</p>
+
+<span class="filepath">lib/screens/home.dart — build()</span>
+<pre>
+<span class="kw">@override</span>
+<span class="cl">Widget</span> <span class="fn">build</span>(<span class="cl">BuildContext</span> context) {
+
+  <span class="cm">// State 1: first load still in progress</span>
+  <span class="kw">if</span> (_isLoading) {
+    <span class="kw">return const</span> <span class="cl">Center</span>(child: <span class="cl">CircularProgressIndicator</span>());
+  }
+
+  <span class="cm">// State 2: first load failed — show error + retry button</span>
+  <span class="kw">if</span> (_error != <span class="kw">null</span>) {
+    <span class="kw">return</span> <span class="cl">Center</span>(
+      child: <span class="cl">Column</span>(
+        mainAxisAlignment: <span class="cl">MainAxisAlignment</span>.center,
+        children: [
+          <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.wifi_off, size: <span class="num">48</span>, color: <span class="cl">Colors</span>.grey),
+          <span class="kw">const</span> <span class="cl">SizedBox</span>(height: <span class="num">12</span>),
+          <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Something went wrong'</span>),
+          <span class="kw">const</span> <span class="cl">SizedBox</span>(height: <span class="num">16</span>),
+          <span class="cl">ElevatedButton</span>(
+            onPressed: _loadProducts, <span class="cm">// retry</span>
+            child: <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Try Again'</span>),
+          ),
+        ],
+      ),
+    );
+  }
+
+  <span class="cm">// State 3: data loaded — wrap ListView in RefreshIndicator</span>
+  <span class="kw">return</span> <span class="cl">RefreshIndicator</span>(
+    <span class="cm">// onRefresh is called when the user pulls down from the top.
+    // It must return a Future — we pass _loadProducts directly.</span>
+    onRefresh: _loadProducts,
+
+    child: <span class="cl">ListView</span>.<span class="fn">builder</span>(
+      controller: _scrollController, <span class="cm">// connect our scroll listener</span>
+      padding: <span class="kw">const</span> <span class="cl">EdgeInsets</span>.<span class="fn">all</span>(<span class="num">12</span>),
+
+      <span class="cm">// +1 for the loading spinner at the bottom (shown while _isLoadingMore is true
+      // or while there are still more pages to load)</span>
+      itemCount: _products.length + (_isLoadingMore || _hasMore ? <span class="num">1</span> : <span class="num">0</span>),
+
+      itemBuilder: (context, index) {
+        <span class="cm">// Last item = the spinner row</span>
+        <span class="kw">if</span> (index == _products.length) {
+          <span class="kw">return const</span> <span class="cl">Padding</span>(
+            padding: <span class="cl">EdgeInsets</span>.<span class="fn">symmetric</span>(vertical: <span class="num">24</span>),
+            child: <span class="cl">Center</span>(child: <span class="cl">CircularProgressIndicator</span>()),
+          );
+        }
+        <span class="cm">// All other items = product cards</span>
+        <span class="kw">return</span> <span class="cl">_ProductCard</span>(product: _products[index]);
+      },
+    ),
+  );
+}
+</pre>
+
+<div class="tip">
+  <strong>RefreshIndicator is just a wrapper.</strong> You wrap your existing
+  <code>ListView</code> with it and provide an <code>onRefresh</code> callback.
+  Flutter handles the spinning animation, the overscroll physics, and calling
+  your callback automatically.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  10. THE COMPLETE FLOW                                      -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>10. The Complete Flow</h2>
+
+<div class="diagram">
+  <strong>App Opens</strong><br>
+  → <code>initState()</code> → <code>_loadProducts()</code> → sets <code>_isLoading=true</code><br>
+  → API call: <code>/products?limit=10&amp;skip=0</code><br>
+  → response arrives → <code>_products = [1..10]</code>, <code>_skip=10</code>, <code>_isLoading=false</code><br>
+  → ListView shows products 1-10 ✅<br><br>
+
+  <strong>User Scrolls Near Bottom</strong><br>
+  → <code>_onScroll()</code> detects position → calls <code>_loadMore()</code><br>
+  → sets <code>_isLoadingMore=true</code> → spinner appears at bottom<br>
+  → API call: <code>/products?limit=10&amp;skip=10</code><br>
+  → response: <code>_products.addAll([11..20])</code>, <code>_skip=20</code><br>
+  → <code>_isLoadingMore=false</code> → spinner gone, 20 products shown ✅<br><br>
+
+  <strong>User Pulls Down from Top</strong><br>
+  → <code>RefreshIndicator.onRefresh</code> → calls <code>_loadProducts()</code><br>
+  → <code>_products.clear()</code> → API: <code>/products?limit=10&amp;skip=0</code><br>
+  → fresh data replaces everything ✅<br><br>
+
+  <strong>Last Page Reached</strong><br>
+  → API returns 6 items (less than limit=10)<br>
+  → <code>_hasMore = false</code> → scroll listener stops calling <code>_loadMore()</code><br>
+  → no spinner at bottom → end of list ✅
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  11. COMMON MISTAKES                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>11. Common Mistakes to Avoid</h2>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Clearing the list in _loadMore</h4>
+    <pre style="font-size:11px; margin:4px 0">Future&lt;void&gt; _loadMore() async {
+  final results = await ...;
+  setState(() {
+    _products.clear();    // ⚠️ wrong!
+    _products.addAll(results);
+  });
+}</pre>
+    <p>All existing products vanish while loading. The user sees a blank screen.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Only append in _loadMore</h4>
+    <pre style="font-size:11px; margin:4px 0">Future&lt;void&gt; _loadMore() async {
+  final results = await ...;
+  setState(() {
+    // No clear() here!
+    _products.addAll(results); // ✅
+  });
+}</pre>
+    <p>Existing products stay visible. New ones appear at the bottom.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ No guard against duplicate fetches</h4>
+    <pre style="font-size:11px; margin:4px 0">void _onScroll() {
+  if (atBottom) {
+    _loadMore(); // called many times
+  }             // while already loading!
+}</pre>
+    <p>The user gets duplicate products because the same page is fetched multiple times.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Check _isLoadingMore before fetching</h4>
+    <pre style="font-size:11px; margin:4px 0">void _onScroll() {
+  if (atBottom
+      &amp;&amp; !_isLoadingMore  // ✅ guard
+      &amp;&amp; _hasMore) {
+    _loadMore();
+  }
+}</pre>
+    <p>The flag prevents any duplicate calls while a fetch is already running.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Forgetting dispose()</h4>
+    <pre style="font-size:11px; margin:4px 0">// No dispose override
+// ScrollController keeps
+// listening forever!</pre>
+    <p>Memory leak — the controller survives even after the widget is gone.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Always dispose controllers</h4>
+    <pre style="font-size:11px; margin:4px 0">@override
+void dispose() {
+  _scrollController.dispose(); // ✅
+  super.dispose();
+}</pre>
+    <p>Resources are freed as soon as the widget leaves the screen.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  12. QUICK REFERENCE                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>12. Quick Reference</h2>
+
+<table>
+  <tr>
+    <th>What You Want to Do</th>
+    <th>Code</th>
+  </tr>
+  <tr>
+    <td>Add pull-to-refresh to a ListView</td>
+    <td>Wrap it in <code>RefreshIndicator(onRefresh: myFuture, child: ListView(...))</code></td>
+  </tr>
+  <tr>
+    <td>Watch scroll position</td>
+    <td>Create <code>ScrollController</code>, call <code>.addListener()</code>, pass to <code>ListView(controller:)</code></td>
+  </tr>
+  <tr>
+    <td>Current scroll position in pixels</td>
+    <td><code>_scrollController.position.pixels</code></td>
+  </tr>
+  <tr>
+    <td>Total scrollable height of the list</td>
+    <td><code>_scrollController.position.maxScrollExtent</code></td>
+  </tr>
+  <tr>
+    <td>Append items without clearing</td>
+    <td><code>setState(() =&gt; _products.addAll(newItems))</code></td>
+  </tr>
+  <tr>
+    <td>Detect last page</td>
+    <td><code>_hasMore = results.length == _pageSize</code></td>
+  </tr>
+  <tr>
+    <td>Free up a controller</td>
+    <td><code>_scrollController.dispose()</code> inside <code>dispose()</code></td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  13. SUMMARY OF CHANGES                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>13. Summary of Changes Made This Lecture</h2>
+
+<table>
+  <tr>
+    <th>File</th>
+    <th>What Changed</th>
+    <th>Why</th>
+  </tr>
+  <tr>
+    <td><code>product_service.dart</code></td>
+    <td>Added <code>limit</code> and <code>skip</code> named parameters to <code>getProducts()</code></td>
+    <td>Enables the API to return any page of data</td>
+  </tr>
+  <tr>
+    <td><code>home.dart</code></td>
+    <td>Replaced <code>FutureBuilder</code> + single Future with manual state variables, <code>ScrollController</code>, <code>_loadProducts()</code>, <code>_loadMore()</code>, <code>RefreshIndicator</code></td>
+    <td>Supports pull-to-refresh and infinite scroll pagination</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  PRACTICE TASK                                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>Practice Task</h2>
+<ol>
+  <li>Run the app — the home screen should show 10 products</li>
+  <li>Scroll to the bottom — a spinner should appear, then 10 more products load</li>
+  <li>Keep scrolling — products keep loading until the API runs out</li>
+  <li>Pull down from the top — the list should reload from product 1</li>
+  <li>Turn off your internet, then pull to refresh — you should see the error screen with a "Try Again" button</li>
+  <li>Turn internet back on and tap "Try Again" — list should reload</li>
+  <li><strong>Challenge:</strong> Change <code>_pageSize</code> from <code>10</code> to <code>5</code>
+      and observe how more, smaller fetches happen as you scroll.</li>
+  <li><strong>Challenge:</strong> Add a counter at the top of the list showing
+      <em>"Showing X products"</em> that updates as more pages load.</li>
+</ol>
+
+<div class="success">
+  <strong>Key Takeaway:</strong> Pagination and pull-to-refresh are two of the most common
+  patterns in real mobile apps. The core idea is simple — <code>limit</code> and <code>skip</code>
+  control which page of data you request, <code>addAll()</code> vs <code>clear()</code>
+  decides whether you replace or extend the list, and <code>ScrollController</code> tells
+  you when to fetch the next page. <code>RefreshIndicator</code> handles the pull gesture
+  with just one wrapper widget.
+</div>
+
+</body>
+</html>

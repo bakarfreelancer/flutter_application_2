@@ -7,10 +7,13 @@ import 'package:flutter_application_2/models/product.dart';
 class ProductService {
   static const String _baseUrl = 'https://dummyjson.com';
 
-  // Fetch a list of products (limit to 20 for performance)
-  static Future<List<Product>> getProducts() async {
+  // Fetch a page of products.
+  // Lecture 15: Added 'limit' and 'skip' parameters for pagination.
+  //   limit = how many products to fetch at once (e.g. 10)
+  //   skip  = how many products to skip from the beginning (e.g. 20 → page 3)
+  static Future<List<Product>> getProducts({int limit = 10, int skip = 0}) async {
     final response = await http.get(
-      Uri.parse('$_baseUrl/products?limit=20'),
+      Uri.parse('$_baseUrl/products?limit=$limit&skip=$skip'),
     );
 
     if (response.statusCode == 200) {
