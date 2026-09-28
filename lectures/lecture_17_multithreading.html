@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 17 – Multithreading in Mobile Apps</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px; color: #1a1a1a; background: #fff;
+      padding: 40px; max-width: 860px; margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800; color: white;
+      padding: 28px 32px; border-radius: 8px; margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+    .fn  { color: #f9e2af; }
+
+    .tip    { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+    .warn   { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+    .success{ background: #e8f5e9; border-left: 4px solid #388e3c; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .success strong { color: #2e7d32; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2.2; margin: 12px 0; text-align: center; color: #444; }
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+    .box { background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; padding: 14px; font-size: 13px; }
+    .box h4 { margin-bottom: 8px; color: #444; }
+    .bad  { border-top: 3px solid #e53935; }
+    .good { border-top: 3px solid #43a047; }
+
+    .timeline {
+      background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px;
+      padding: 16px 20px; font-family: monospace; font-size: 12px;
+      line-height: 1.9; margin: 12px 0; color: #333;
+    }
+    .t-ui   { color: #1565C0; font-weight: bold; }
+    .t-io   { color: #2E7D32; font-weight: bold; }
+    .t-iso  { color: #6A1B9A; font-weight: bold; }
+    .t-blk  { color: #B71C1C; font-weight: bold; }
+
+    @media print {
+      body { padding: 20px; }
+      pre { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  HEADER                                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <div class="course">BS — MOBILE APPLICATION DEVELOPMENT · FLUTTER</div>
+  <h1>Lecture 17 — Multithreading in Mobile Apps</h1>
+  <div class="meta">Topics: UI Thread · Event Loop · async/await · Future · Isolates · compute() · Jank</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  OBJECTIVES                                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ul>
+    <li>Understand what a thread is and why mobile apps care about them</li>
+    <li>Understand why blocking the UI thread freezes the entire app</li>
+    <li>Understand Dart's single-threaded event loop model</li>
+    <li>Use <code>async</code> / <code>await</code> / <code>Future</code> correctly — and understand what is really happening under the hood</li>
+    <li>Know the difference between <em>concurrent</em> (async) and <em>parallel</em> (Isolate) execution</li>
+    <li>Use <code>compute()</code> to move CPU-heavy work off the UI thread</li>
+    <li>Identify which kind of work needs async and which needs an Isolate</li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  1. WHAT IS A THREAD?                                      -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>1. What Is a Thread?</h2>
+
+<p>A <strong>thread</strong> is the smallest unit of execution that a CPU can run.
+Think of it as a worker who reads and executes instructions one by one.</p>
+
+<ul>
+  <li>A program can have <strong>one thread</strong> (single-threaded) or
+      <strong>many threads</strong> (multi-threaded)</li>
+  <li>Multiple threads can run on multiple CPU cores truly <em>at the same time</em>
+      (parallelism)</li>
+  <li>On a single core, threads take turns so fast it <em>appears</em> simultaneous
+      (concurrency)</li>
+</ul>
+
+<div class="diagram">
+  <strong>Single-threaded</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>Multi-threaded</strong><br><br>
+  Worker 1: A → B → C → D → E&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Worker 1: A → B → C<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Worker 2: D → E → F<br>
+  Everything happens in order.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Tasks run in parallel.
+</div>
+
+<p>In mobile development, one thread matters above all others: the <strong>UI thread</strong>
+(also called the <em>main thread</em>).</p>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  2. THE UI THREAD — THE GOLDEN RULE                        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>2. The UI Thread — The Most Important Thread</h2>
+
+<p>Every mobile operating system has a dedicated thread responsible for
+<strong>drawing the screen</strong> and <strong>handling user input</strong>.
+This is called the <strong>UI thread</strong> (or main thread).</p>
+
+<p>The UI thread must draw a new frame <strong>60 times per second</strong>
+(60 fps). That means it has only <strong>16 milliseconds</strong> per frame.
+If any task on the UI thread takes longer than 16ms, the app skips frames —
+this is called <strong>jank</strong>, and the user sees it as stuttering or freezing.</p>
+
+<div class="diagram">
+  <strong>60 fps = 1 frame every 16 milliseconds</strong><br><br>
+  Frame 1&nbsp; [16ms] → Draw ✅<br>
+  Frame 2&nbsp; [16ms] → Draw ✅<br>
+  Frame 3&nbsp; [<span style="color:#b71c1c">150ms — API call on UI thread!</span>] → Late ❌ → User sees freeze<br>
+  Frame 4&nbsp; [16ms] → Draw ✅ (freeze over)<br>
+</div>
+
+<p><strong>The golden rule of mobile development:</strong></p>
+<div class="warn">
+  <strong>Never run slow work on the UI thread.</strong>
+  Slow work includes: network requests, reading/writing files, heavy calculations,
+  parsing large JSON, image processing. Always do this work on a background thread
+  and only update the UI when the result is ready.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  3. TWO KINDS OF SLOW WORK                                 -->
+<!-- ══════════════════════════════════════════────────────────── -->
+<h2>3. Two Kinds of Slow Work</h2>
+
+<p>Not all slow work is slow in the same way. Understanding the difference is critical:</p>
+
+<div class="two-col">
+  <div class="box">
+    <h4>I/O-bound work (waiting)</h4>
+    <p>The CPU is not busy — it is just <em>waiting</em> for something external to respond.</p>
+    <ul>
+      <li>Network request (waiting for the server)</li>
+      <li>Reading a file from disk</li>
+      <li>Querying a database</li>
+    </ul>
+    <p><strong>Solution: async / await</strong><br>
+    The thread is free while waiting — it can handle other things.</p>
+  </div>
+  <div class="box">
+    <h4>CPU-bound work (calculating)</h4>
+    <p>The CPU is actively busy doing a calculation for a long time.</p>
+    <ul>
+      <li>Parsing a 10 MB JSON file</li>
+      <li>Resizing or compressing an image</li>
+      <li>Encrypting a large file</li>
+      <li>Sorting a list of 100,000 items</li>
+    </ul>
+    <p><strong>Solution: Isolate / compute()</strong><br>
+    Must move to a truly separate thread — async alone is not enough.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  4. DART'S EVENT LOOP                                      -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>4. Dart's Model — Single Thread + Event Loop</h2>
+
+<p>Dart (the language Flutter uses) is <strong>single-threaded</strong>. There is only
+one thread by default — and that thread runs both your code <em>and</em> the UI.
+So how does Dart handle slow I/O work without freezing?</p>
+
+<p>Dart uses an <strong>Event Loop</strong>. The event loop sits and waits. Whenever a
+task finishes (e.g. a network response arrives), it adds the result to a queue. The
+event loop picks up the result and runs the code that was waiting for it.</p>
+
+<div class="diagram">
+  <strong>Dart Event Loop</strong><br><br>
+  ┌──────────────────────────────────────────────────┐<br>
+  │ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Event Queue&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  │ [draw frame] [tap event] [API response arrived]  │<br>
+  └──────────────────────────────────────────────────┘<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓ picks one at a time<br>
+  ┌──────────────────────────────────────────────────┐<br>
+  │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Single Thread&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; executes each task to completion&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  └──────────────────────────────────────────────────┘
+</div>
+
+<p>The key insight: when Dart does an <code>await</code> on a network call, the thread is
+<strong>not sitting idle blocking</strong>. It registers a callback ("call me when the
+response arrives"), then goes back to the event loop to handle other events — like
+drawing the next frame or responding to a tap. When the response arrives, the callback
+is added to the queue and runs next.</p>
+
+<div class="tip">
+  <strong>Analogy:</strong> A waiter in a restaurant is single-threaded. He takes your
+  order, walks to the kitchen and places it, then goes to serve other tables while the
+  chef (the OS/hardware) does the slow cooking work. When the food is ready, he picks it
+  up and brings it to you. He never stands at the kitchen window doing nothing.
+  <code>async/await</code> is that waiter.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  5. FUTURE, async, await                                   -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>5. Future, async, and await — How They Work</h2>
+
+<h3>Future</h3>
+<p>A <code>Future&lt;T&gt;</code> represents a value that does not exist yet but
+<em>will</em> exist at some point. It is a promise of a result.</p>
+
+<pre>
+<span class="cm">// This function RETURNS IMMEDIATELY with a Future.
+// The actual work (network call) happens later.</span>
+<span class="cl">Future</span>&lt;<span class="cl">String</span>&gt; <span class="fn">fetchUsername</span>() {
+  <span class="kw">return</span> http.<span class="fn">get</span>(...).then((response) =&gt; response.body);
+}
+</pre>
+
+<h3>async / await — the readable way</h3>
+<p><code>async</code> and <code>await</code> are just cleaner syntax for working with
+Futures. They make asynchronous code look like synchronous code.</p>
+
+<pre>
+<span class="cm">// Without async/await — hard to read (callback style)</span>
+<span class="kw">void</span> <span class="fn">loadUser</span>() {
+  <span class="fn">fetchUsername</span>().then((name) {
+    <span class="fn">print</span>(name);
+  });
+}
+
+<span class="cm">// With async/await — reads top to bottom like normal code</span>
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">loadUser</span>() <span class="kw">async</span> {
+  <span class="kw">final</span> name = <span class="kw">await</span> <span class="fn">fetchUsername</span>(); <span class="cm">// pause HERE until the Future completes</span>
+  <span class="fn">print</span>(name);                         <span class="cm">// runs after the Future completes</span>
+}
+</pre>
+
+<div class="tip">
+  <strong>await does NOT freeze the UI.</strong> When the code hits <code>await</code>,
+  the current function pauses and gives control back to the event loop.
+  The UI can still draw frames and respond to taps. The function resumes as soon as
+  the awaited Future completes. This is what makes async I/O safe on the UI thread.
+</div>
+
+<h3>What the event loop actually does during an await</h3>
+
+<div class="timeline">
+  Time →<br><br>
+  <span class="t-ui">[UI Thread]</span>&nbsp;&nbsp; draw frame | handle tap | run _loadProducts() | ← await ← | resume after response | draw frame<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↕ free to draw frames while waiting<br>
+  <span class="t-io">[OS/Network]</span>&nbsp; &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;── network call in progress ──→ response ready → event queued
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  6. async/await IN OUR APP                                 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>6. async/await in Our App — What We Already Built</h2>
+
+<p>We have been using async/await since Lecture 10 without thinking too deeply about it.
+Now we understand <em>why</em> it is the right tool for network calls.</p>
+
+<pre>
+<span class="cm">// product_service.dart — I/O-bound work: waiting for the network</span>
+<span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="cl">List</span>&lt;<span class="cl">Product</span>&gt;&gt; <span class="fn">getProducts</span>({...}) <span class="kw">async</span> {
+  <span class="cm">// await here: UI thread is FREE while the server responds.
+  // Flutter can still draw frames — no jank.</span>
+  <span class="kw">final</span> response = <span class="kw">await</span> http.<span class="fn">get</span>(...);
+  <span class="kw">return</span> productsJson.<span class="fn">map</span>((p) =&gt; <span class="cl">Product</span>.<span class="fn">fromJson</span>(p)).<span class="fn">toList</span>();
+}
+
+<span class="cm">// home.dart — uses the result safely back on the UI thread</span>
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">_loadProducts</span>() <span class="kw">async</span> {
+  <span class="fn">setState</span>(() =&gt; _isLoading = <span class="kw">true</span>);
+  <span class="kw">final</span> results = <span class="kw">await</span> <span class="cl">ProductService</span>.<span class="fn">getProducts</span>();
+  <span class="fn">setState</span>(() {          <span class="cm">// setState runs on the UI thread — correct</span>
+    _products = results;
+    _isLoading = <span class="kw">false</span>;
+  });
+}
+</pre>
+
+<p>This is the correct pattern:</p>
+<ol>
+  <li>Use <code>await</code> for the slow part (network) — UI stays responsive</li>
+  <li>Call <code>setState()</code> <em>after</em> the await — updates the UI on the main thread</li>
+</ol>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  7. THE PROBLEM ASYNC DOESN'T SOLVE                        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>7. The Limit of async/await — CPU-Heavy Work</h2>
+
+<p>async/await solves <em>waiting</em> but not <em>calculating</em>.
+If you have a large, CPU-intensive task, even with <code>async</code> it will
+still block the UI thread because the Dart thread <strong>is actively running</strong>
+code, not waiting.</p>
+
+<pre>
+<span class="cm">// This looks async but it STILL BLOCKS THE UI.</span>
+<span class="cm">// There is no await — the for loop keeps the CPU busy on the UI thread.</span>
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">heavyWork</span>() <span class="kw">async</span> {
+  <span class="kw">var</span> sum = <span class="num">0</span>;
+  <span class="kw">for</span> (<span class="kw">var</span> i = <span class="num">0</span>; i &lt; <span class="num">100000000</span>; i++) { <span class="cm">// 100 million iterations!</span>
+    sum += i;
+  }
+  <span class="fn">print</span>(sum);
+}
+</pre>
+
+<div class="warn">
+  <strong>Adding <code>async</code> to a function does NOT automatically run it in the
+  background.</strong> It only means the function returns a Future and you can use
+  <code>await</code> inside it. If the function never awaits anything, it runs
+  entirely on the UI thread.
+</div>
+
+<p>The solution for CPU-heavy work is a Dart <strong>Isolate</strong>.</p>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  8. ISOLATES — TRUE PARALLEL THREADS IN DART              -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>8. Isolates — True Parallel Threads in Dart</h2>
+
+<p>A Dart <strong>Isolate</strong> is a fully separate thread with its own memory.
+Unlike regular threads in Java/C++ that share memory, Isolates are completely
+isolated — they cannot share variables. They communicate only by
+<strong>passing messages</strong>.</p>
+
+<div class="two-col">
+  <div class="box">
+    <h4>Regular thread (Java/Android)</h4>
+    <ul>
+      <li>Threads share memory</li>
+      <li>Risk of race conditions</li>
+      <li>Need locks / synchronized blocks</li>
+      <li>Complex and error-prone</li>
+    </ul>
+  </div>
+  <div class="box">
+    <h4>Dart Isolate</h4>
+    <ul>
+      <li>Completely separate memory</li>
+      <li>No race conditions possible</li>
+      <li>Communicate via message passing</li>
+      <li>Safer and simpler</li>
+    </ul>
+  </div>
+</div>
+
+<div class="diagram">
+  <strong>Isolates — Separate Memory</strong><br><br>
+  ┌─────────────────────────┐&nbsp;&nbsp;&nbsp;message&nbsp;&nbsp;&nbsp;┌─────────────────────────┐<br>
+  │ Main Isolate (UI)       │ ──────────→ │ Worker Isolate          │<br>
+  │                         │ ←────────── │                         │<br>
+  │ Owns: _products, _skip  │&nbsp;&nbsp;&nbsp;result&nbsp;&nbsp;&nbsp;&nbsp;│ Owns: copy of raw data  │<br>
+  │ Draws the UI            │             │ Does heavy calculation   │<br>
+  └─────────────────────────┘             └─────────────────────────┘<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;No shared variables — data is copied
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  9. compute() — THE EASY WAY TO USE ISOLATES               -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>9. compute() — The Easy Way to Use Isolates</h2>
+
+<p>Creating and managing Isolates manually is verbose. Flutter provides a simpler
+helper function called <code>compute()</code> that handles all the setup automatically.
+You give it a function and some data — it runs the function in a background Isolate
+and returns the result as a Future.</p>
+
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter/foundation.dart'</span>; <span class="cm">// compute() is here</span>
+
+<span class="cm">// STEP 1: Write a TOP-LEVEL function (not inside a class)
+// It must be a regular function — not async, not a method.
+// This is the work that will run in the background Isolate.</span>
+<span class="cl">List</span>&lt;<span class="cl">Product</span>&gt; <span class="fn">_parseProducts</span>(<span class="cl">String</span> rawJson) {
+  <span class="kw">final</span> data = <span class="fn">jsonDecode</span>(rawJson);
+  <span class="kw">final</span> <span class="cl">List</span> list = data[<span class="st">'products'</span>];
+  <span class="kw">return</span> list.<span class="fn">map</span>((p) =&gt; <span class="cl">Product</span>.<span class="fn">fromJson</span>(p)).<span class="fn">toList</span>();
+  <span class="cm">// This might take 200ms for a huge JSON — that's fine here,
+  // because it runs on a background Isolate, not the UI thread.</span>
+}
+
+<span class="cm">// STEP 2: Call compute() — it spawns a background Isolate,
+// runs _parseProducts(rawJson) there, and returns the result.</span>
+<span class="kw">static</span> <span class="cl">Future</span>&lt;<span class="cl">List</span>&lt;<span class="cl">Product</span>&gt;&gt; <span class="fn">getProducts</span>() <span class="kw">async</span> {
+  <span class="kw">final</span> response = <span class="kw">await</span> http.<span class="fn">get</span>(...); <span class="cm">// I/O-bound: fine with await</span>
+
+  <span class="cm">// CPU-bound: parse the JSON in a background Isolate</span>
+  <span class="kw">return</span> <span class="kw">await</span> <span class="fn">compute</span>(_parseProducts, response.body);
+  <span class="cm">// ↑ first arg: the function to run
+  // ↑ second arg: the data to send to it (copied, not shared)</span>
+}
+</pre>
+
+<div class="tip">
+  <strong>Why a top-level function?</strong> Isolates have their own memory and cannot
+  access the parent class's state. So the function must be defined outside any class —
+  at the top level of the Dart file. This rule is enforced by the Dart VM.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  10. ASYNC vs ISOLATE — DECISION GUIDE                     -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>10. When to Use What — Decision Guide</h2>
+
+<table>
+  <tr>
+    <th>Situation</th>
+    <th>Type of Work</th>
+    <th>Solution</th>
+  </tr>
+  <tr>
+    <td>HTTP / network request</td>
+    <td>I/O-bound (waiting)</td>
+    <td><code>async / await</code></td>
+  </tr>
+  <tr>
+    <td>Reading / writing a file</td>
+    <td>I/O-bound (waiting)</td>
+    <td><code>async / await</code></td>
+  </tr>
+  <tr>
+    <td>Database query</td>
+    <td>I/O-bound (waiting)</td>
+    <td><code>async / await</code></td>
+  </tr>
+  <tr>
+    <td>Parsing a large JSON (&gt; ~1 MB)</td>
+    <td>CPU-bound (calculating)</td>
+    <td><code>compute()</code></td>
+  </tr>
+  <tr>
+    <td>Resizing / compressing an image</td>
+    <td>CPU-bound (calculating)</td>
+    <td><code>compute()</code></td>
+  </tr>
+  <tr>
+    <td>Encrypting / hashing a large file</td>
+    <td>CPU-bound (calculating)</td>
+    <td><code>compute()</code></td>
+  </tr>
+  <tr>
+    <td>Sorting 100,000+ items</td>
+    <td>CPU-bound (calculating)</td>
+    <td><code>compute()</code></td>
+  </tr>
+  <tr>
+    <td>Parsing a small JSON (a few KB)</td>
+    <td>CPU-bound but fast</td>
+    <td>Fine on UI thread — no action needed</td>
+  </tr>
+</table>
+
+<div class="diagram">
+  <strong>Quick Decision Rule</strong><br><br>
+  Is the work slow? → NO → Run it normally on the UI thread<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ YES<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Is it waiting for something external? → YES → <strong>async/await</strong><br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Is the CPU actively calculating?&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;→ YES → <strong>compute()</strong>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  11. HOW OTHER PLATFORMS HANDLE THIS                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>11. How Other Platforms Handle This</h2>
+
+<p>Every mobile platform has the same problem (UI thread must stay free) and uses the
+same general approach (do slow work elsewhere). The names differ:</p>
+
+<table>
+  <tr>
+    <th>Platform</th>
+    <th>UI Thread Name</th>
+    <th>I/O Async Solution</th>
+    <th>CPU Parallel Solution</th>
+  </tr>
+  <tr>
+    <td><strong>Flutter / Dart</strong></td>
+    <td>Main Isolate</td>
+    <td><code>async / await / Future</code></td>
+    <td><code>Isolate / compute()</code></td>
+  </tr>
+  <tr>
+    <td><strong>Android (Kotlin)</strong></td>
+    <td>Main Thread</td>
+    <td>Coroutines (<code>suspend / launch</code>)</td>
+    <td><code>Dispatchers.Default</code> (thread pool)</td>
+  </tr>
+  <tr>
+    <td><strong>iOS (Swift)</strong></td>
+    <td>Main Thread</td>
+    <td><code>async / await</code> (Swift 5.5+)</td>
+    <td>Grand Central Dispatch (GCD) background queues</td>
+  </tr>
+  <tr>
+    <td><strong>React Native (JS)</strong></td>
+    <td>JS Thread</td>
+    <td><code>async / await / Promise</code></td>
+    <td>Native modules on background threads</td>
+  </tr>
+</table>
+
+<div class="tip">
+  <strong>The concept is universal.</strong> Whether you work in Flutter, Android, iOS,
+  or React Native, the same rules apply: keep the UI thread free, use async for
+  I/O-bound work, and use a background thread/isolate for CPU-bound work.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  12. COMMON MISTAKES                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>12. Common Mistakes to Avoid</h2>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Calling setState from a background Isolate</h4>
+    <pre style="font-size:11px; margin:4px 0">void _myIsolateWork() {
+  // ... heavy calculation ...
+  setState(() { ... }); // ⚠️ CRASH
+}</pre>
+    <p><code>setState()</code> must run on the main thread. Calling it from a background isolate crashes the app.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Return the result, then setState</h4>
+    <pre style="font-size:11px; margin:4px 0">final result =
+  await compute(_myIsolateWork, data);
+// Back on main thread now:
+setState(() { _data = result; }); // ✅</pre>
+    <p><code>compute()</code> returns to the main thread automatically. Call <code>setState()</code> after the await.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Thinking async = runs in background</h4>
+    <pre style="font-size:11px; margin:4px 0">Future&lt;void&gt; heavyWork() async {
+  for (int i = 0; i &lt; 100000000; i++) {
+    result += i; // still blocks UI!
+  }
+}</pre>
+    <p><code>async</code> alone does NOT move CPU work to a background thread. The loop still runs on the UI thread.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Use compute() for CPU-heavy tasks</h4>
+    <pre style="font-size:11px; margin:4px 0">// Top-level function:
+int _sumNumbers(int limit) {
+  var result = 0;
+  for (int i = 0; i &lt; limit; i++) result += i;
+  return result;
+}
+// In your widget:
+final sum = await compute(_sumNumbers, 100000000); ✅</pre>
+    <p>Now the loop runs in a background Isolate — the UI stays smooth.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Forgetting to show loading state</h4>
+    <pre style="font-size:11px; margin:4px 0">await loadData();
+// If this takes 3 seconds,
+// user sees a blank/frozen screen
+// with no feedback.</pre>
+    <p>Even when the UI thread is free (async), the user needs to know something is happening.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Always show a loading indicator</h4>
+    <pre style="font-size:11px; margin:4px 0">setState(() => _isLoading = true);
+await loadData();
+setState(() => _isLoading = false);
+// CircularProgressIndicator shown
+// while waiting — good UX ✅</pre>
+    <p>Keep the user informed. A spinning indicator prevents the app from feeling broken.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  13. QUICK REFERENCE                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>13. Quick Reference</h2>
+
+<table>
+  <tr>
+    <th>Concept</th>
+    <th>Meaning</th>
+  </tr>
+  <tr>
+    <td><code>Future&lt;T&gt;</code></td>
+    <td>A promise of a value T that will arrive later</td>
+  </tr>
+  <tr>
+    <td><code>async</code></td>
+    <td>Marks a function as asynchronous — it returns a Future and can use await</td>
+  </tr>
+  <tr>
+    <td><code>await</code></td>
+    <td>Pause this function until the Future completes; the UI thread is still free</td>
+  </tr>
+  <tr>
+    <td>Jank</td>
+    <td>Dropped frames causing stutter — happens when the UI thread is blocked for &gt;16ms</td>
+  </tr>
+  <tr>
+    <td>I/O-bound work</td>
+    <td>Slow because it waits (network, file, DB) — fix with <code>async/await</code></td>
+  </tr>
+  <tr>
+    <td>CPU-bound work</td>
+    <td>Slow because it calculates (JSON parse, image resize) — fix with <code>compute()</code></td>
+  </tr>
+  <tr>
+    <td><code>Isolate</code></td>
+    <td>A completely separate Dart thread with its own memory — true parallelism</td>
+  </tr>
+  <tr>
+    <td><code>compute(fn, data)</code></td>
+    <td>Runs <code>fn(data)</code> in a background Isolate; returns a Future with the result</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  PRACTICE TASK                                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>Practice Task</h2>
+<ol>
+  <li>In your own words, explain the difference between <strong>concurrent</strong>
+      (async) and <strong>parallel</strong> (Isolate) execution. Give one real-world
+      analogy for each.</li>
+  <li>Open <code>product_service.dart</code> — identify every <code>async</code> and
+      <code>await</code>. For each <code>await</code>, write a comment saying what it
+      is waiting for and whether that is I/O-bound or CPU-bound.</li>
+  <li>Write a small Dart function (in any file) that calculates the sum of all numbers
+      from 1 to 10,000,000 using a for loop. Call it normally and observe — does the
+      UI freeze? Now wrap it in <code>compute()</code> and compare.</li>
+  <li><strong>Challenge:</strong> In <code>product_service.dart</code>, move the JSON
+      parsing step (<code>jsonDecode</code> + <code>map().toList()</code>) into a
+      top-level function and call it via <code>compute()</code>. This is the correct
+      production-quality approach for large API responses.</li>
+  <li><strong>Challenge:</strong> Research what happens in Android when you perform a
+      network call on the main thread. What exception does it throw? Why did Google add
+      this strict rule?</li>
+</ol>
+
+<div class="success">
+  <strong>Key Takeaway:</strong> The UI thread must draw 60 frames per second — give it
+  any work lasting more than 16ms and the user will feel it. Use <code>async/await</code>
+  for anything that <em>waits</em> (network, file, database) — it keeps the thread free
+  while waiting. Use <code>compute()</code> for anything the CPU must actively
+  <em>calculate</em> (large JSON, image processing) — it moves work to a truly
+  separate Isolate. You have already been using async/await correctly since Lecture 10;
+  this lecture explains <em>why</em> it works and when you need to go further with
+  Isolates.
+</div>
+
+</body>
+</html>

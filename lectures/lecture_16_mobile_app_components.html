@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 16 – Components of a Mobile Application</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px; color: #1a1a1a; background: #fff;
+      padding: 40px; max-width: 860px; margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800; color: white;
+      padding: 28px 32px; border-radius: 8px; margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+    .fn  { color: #f9e2af; }
+
+    .tip    { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+    .warn   { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+    .success{ background: #e8f5e9; border-left: 4px solid #388e3c; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .success strong { color: #2e7d32; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2.2; margin: 12px 0; text-align: center; color: #444; }
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 12px 0; }
+    .box { background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; padding: 14px; font-size: 13px; }
+    .box h4 { margin-bottom: 8px; color: #444; font-size: 13px; }
+    .layer-ui   { border-top: 4px solid #42a5f5; }
+    .layer-biz  { border-top: 4px solid #66bb6a; }
+    .layer-data { border-top: 4px solid #ef5350; }
+
+    @media print {
+      body { padding: 20px; }
+      pre { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  HEADER                                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <div class="course">BS — MOBILE APPLICATION DEVELOPMENT · THEORY</div>
+  <h1>Lecture 16 — Components of a Mobile Application</h1>
+  <div class="meta">Topics: App Architecture · UI Layer · Business Logic · Data Layer · Storage · Networking · Device APIs · Security</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  OBJECTIVES                                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ul>
+    <li>Understand the standard three-layer architecture that every mobile app follows</li>
+    <li>Identify the core components present in every mobile application regardless of platform</li>
+    <li>Understand the role of each component: UI, Business Logic, Data, Networking, Storage, Security</li>
+    <li>Map these generic components to what we have already built in our Flutter app</li>
+    <li>Compare how iOS and Android implement the same concepts differently</li>
+    <li>Understand the client–server model and where the mobile app fits in it</li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  1. WHAT IS A MOBILE APPLICATION?                          -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>1. What Is a Mobile Application?</h2>
+
+<p>A <strong>mobile application</strong> is a software program designed to run on a
+handheld device — a smartphone or tablet. Unlike desktop software, mobile apps must
+operate under constraints that do not exist on a laptop:</p>
+
+<ul>
+  <li><strong>Limited battery</strong> — CPU-heavy work drains power fast</li>
+  <li><strong>Limited memory (RAM)</strong> — the OS can kill your app without warning if RAM is low</li>
+  <li><strong>Variable connectivity</strong> — the network can drop at any moment</li>
+  <li><strong>Small screen</strong> — UI must be designed for touch and compact layouts</li>
+  <li><strong>Background restrictions</strong> — apps are not always running; the OS may suspend them</li>
+  <li><strong>Privacy &amp; permissions</strong> — apps must ask the user before accessing camera, location, contacts, etc.</li>
+</ul>
+
+<p>Every well-built mobile app is designed with these constraints in mind. The standard
+way to handle this complexity is to split the app into <strong>layers</strong>, each with a
+single clear responsibility.</p>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  2. THE THREE-LAYER ARCHITECTURE                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>2. The Three-Layer Architecture</h2>
+
+<p>Almost every mobile app — regardless of the platform (iOS, Android, Flutter) or the
+company that built it — is organised into three layers:</p>
+
+<div class="diagram">
+  ┌──────────────────────────────────────────────────────┐<br>
+  │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>Presentation Layer (UI)</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  │&nbsp;&nbsp;Screens · Widgets · Navigation · Animations&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  │&nbsp;&nbsp;&nbsp;&nbsp;What the user sees and touches&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  ├──────────────────────────────────────────────────────┤<br>
+  │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>Business Logic Layer</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  │&nbsp;&nbsp;State Management · Rules · Validation · Auth&nbsp;&nbsp;&nbsp;│<br>
+  │&nbsp;&nbsp;&nbsp;&nbsp;What the app decides and calculates&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  ├──────────────────────────────────────────────────────┤<br>
+  │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<strong>Data Layer</strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  │&nbsp;&nbsp;Network · Local Storage · Device APIs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  │&nbsp;&nbsp;&nbsp;&nbsp;Where the app gets and stores data&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+  └──────────────────────────────────────────────────────┘
+</div>
+
+<div class="three-col">
+  <div class="box layer-ui">
+    <h4>Presentation Layer</h4>
+    <ul>
+      <li>Screens &amp; pages</li>
+      <li>Buttons, forms, lists</li>
+      <li>Navigation between screens</li>
+      <li>Animations &amp; transitions</li>
+      <li>Theme &amp; styling</li>
+    </ul>
+    <p style="margin-top:8px;color:#555">In our app: <code>home.dart</code>, <code>login_screen.dart</code>, all widgets</p>
+  </div>
+  <div class="box layer-biz">
+    <h4>Business Logic Layer</h4>
+    <ul>
+      <li>State management</li>
+      <li>Form validation rules</li>
+      <li>Authentication logic</li>
+      <li>Cart calculations</li>
+      <li>Decision making</li>
+    </ul>
+    <p style="margin-top:8px;color:#555">In our app: <code>auth_provider.dart</code>, <code>cart_provider.dart</code></p>
+  </div>
+  <div class="box layer-data">
+    <h4>Data Layer</h4>
+    <ul>
+      <li>API / HTTP calls</li>
+      <li>Local database</li>
+      <li>SharedPreferences</li>
+      <li>File system</li>
+      <li>Device sensors</li>
+    </ul>
+    <p style="margin-top:8px;color:#555">In our app: <code>product_service.dart</code>, <code>auth_service.dart</code>, <code>user_storage.dart</code></p>
+  </div>
+</div>
+
+<div class="tip">
+  <strong>Why layers?</strong> Layers keep code organised. The UI should not make API calls
+  directly — it should ask the Business Logic layer, which asks the Data layer. This way,
+  if you switch from REST to GraphQL tomorrow, you only change the Data layer — the UI and
+  the business logic don't need to know.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  3. COMPONENT 1 — USER INTERFACE (UI)                      -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>3. Component 1 — User Interface (UI)</h2>
+
+<p>The UI is what the user sees and touches. Every mobile app's UI consists of a fixed set
+of building blocks regardless of which platform or framework you use:</p>
+
+<table>
+  <tr>
+    <th>Building Block</th>
+    <th>Description</th>
+    <th>iOS Name</th>
+    <th>Android Name</th>
+    <th>Flutter Name</th>
+  </tr>
+  <tr>
+    <td><strong>Screen / Page</strong></td>
+    <td>A full-screen view the user navigates to</td>
+    <td>ViewController</td>
+    <td>Activity / Fragment</td>
+    <td>Screen Widget</td>
+  </tr>
+  <tr>
+    <td><strong>List</strong></td>
+    <td>Scrollable collection of repeated items</td>
+    <td>UITableView</td>
+    <td>RecyclerView</td>
+    <td>ListView</td>
+  </tr>
+  <tr>
+    <td><strong>Form input</strong></td>
+    <td>Text field, checkbox, dropdown</td>
+    <td>UITextField</td>
+    <td>EditText</td>
+    <td>TextField</td>
+  </tr>
+  <tr>
+    <td><strong>Button</strong></td>
+    <td>Tappable action trigger</td>
+    <td>UIButton</td>
+    <td>Button</td>
+    <td>ElevatedButton</td>
+  </tr>
+  <tr>
+    <td><strong>Image</strong></td>
+    <td>Displays a picture (local or from URL)</td>
+    <td>UIImageView</td>
+    <td>ImageView</td>
+    <td>Image.network()</td>
+  </tr>
+  <tr>
+    <td><strong>Bottom Navigation</strong></td>
+    <td>Tab bar at the bottom of the screen</td>
+    <td>UITabBarController</td>
+    <td>BottomNavigationView</td>
+    <td>BottomNavigationBar</td>
+  </tr>
+</table>
+
+<h3>Navigation</h3>
+<p>Navigation is the system that moves the user from one screen to another. Every platform
+has two models:</p>
+
+<div class="two-col">
+  <div class="box">
+    <h4>Stack Navigation (Push / Pop)</h4>
+    <p>Screens stack on top of each other like a deck of cards. Tapping Back removes the top screen.</p>
+    <p>Used for: detail pages, checkout flows, settings sub-pages.</p>
+    <p><em>Flutter: <code>Navigator.push()</code> / <code>Navigator.pop()</code></em></p>
+  </div>
+  <div class="box">
+    <h4>Tab Navigation</h4>
+    <p>Multiple top-level sections accessible from a persistent bottom bar. Switching tabs doesn't push/pop.</p>
+    <p>Used for: Home, Search, Cart, Profile — the main sections of an app.</p>
+    <p><em>Flutter: <code>IndexedStack</code> + <code>BottomNavigationBar</code></em></p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  4. COMPONENT 2 — BUSINESS LOGIC                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>4. Component 2 — Business Logic</h2>
+
+<p>Business logic is the brain of the app. It does not display anything — it makes
+decisions. Examples of business logic:</p>
+<ul>
+  <li>Is this email address valid?</li>
+  <li>Is the user's session token still valid?</li>
+  <li>What is the total price of the items in the cart?</li>
+  <li>Should this button be enabled or disabled right now?</li>
+  <li>If a network call fails, should we retry or show an error?</li>
+</ul>
+
+<h3>State Management</h3>
+<p><strong>State</strong> is any data that can change and that the UI needs to react to.
+Every mobile app needs a strategy for managing state. Common approaches:</p>
+
+<table>
+  <tr>
+    <th>Approach</th>
+    <th>Description</th>
+    <th>Used In</th>
+  </tr>
+  <tr>
+    <td>Local state</td>
+    <td>State lives in a single screen — other screens can't see it</td>
+    <td>A toggle switch, a form field value</td>
+  </tr>
+  <tr>
+    <td>Shared / global state</td>
+    <td>State lives in a central place — all screens can read and update it</td>
+    <td>Auth status, cart contents, theme choice</td>
+  </tr>
+  <tr>
+    <td>Server state</td>
+    <td>Data fetched from an API — needs to be cached and refreshed</td>
+    <td>Product list, user profile from a backend</td>
+  </tr>
+</table>
+
+<div class="tip">
+  <strong>In our app:</strong> We used <code>setState()</code> for local state (form fields,
+  loading flags) and <code>Provider</code> (ChangeNotifier) for global shared state
+  (cart, authentication, theme). This is exactly the business logic layer.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  5. COMPONENT 3 — DATA STORAGE                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>5. Component 3 — Data Storage</h2>
+
+<p>Mobile apps need to store data locally on the device. There are four types, each suited
+to different needs:</p>
+
+<table>
+  <tr>
+    <th>Storage Type</th>
+    <th>What It Stores</th>
+    <th>Persistent?</th>
+    <th>Example Use</th>
+    <th>Flutter / Android / iOS</th>
+  </tr>
+  <tr>
+    <td><strong>Key-Value Store</strong></td>
+    <td>Simple settings: strings, booleans, numbers</td>
+    <td>Yes</td>
+    <td>Auth token, dark mode setting, user preferences</td>
+    <td>SharedPreferences / UserDefaults / NSUserDefaults</td>
+  </tr>
+  <tr>
+    <td><strong>Relational Database</strong></td>
+    <td>Structured tables with relationships</td>
+    <td>Yes</td>
+    <td>Offline product catalogue, chat messages, notes</td>
+    <td>sqflite / SQLite / Core Data</td>
+  </tr>
+  <tr>
+    <td><strong>File System</strong></td>
+    <td>Any file: images, PDFs, audio, video</td>
+    <td>Yes</td>
+    <td>Downloaded files, cached images, exported reports</td>
+    <td>path_provider / File APIs</td>
+  </tr>
+  <tr>
+    <td><strong>In-Memory (RAM)</strong></td>
+    <td>Temporary data during app session</td>
+    <td>No — lost on close</td>
+    <td>Search results, current page's product list</td>
+    <td>Variables / List / Map</td>
+  </tr>
+</table>
+
+<h3>When to use which?</h3>
+<div class="diagram">
+  "Is the data small and simple?" → YES → <strong>Key-Value Store</strong> (SharedPreferences)<br>
+  "Is the data structured and needs querying?" → YES → <strong>SQLite Database</strong><br>
+  "Is the data a file (image, PDF, audio)?" → YES → <strong>File System</strong><br>
+  "Is the data only needed while the app is open?" → YES → <strong>In-Memory variable</strong>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  6. COMPONENT 4 — NETWORKING                               -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>6. Component 4 — Networking</h2>
+
+<p>Most mobile apps are <strong>clients</strong> — they send requests to a
+<strong>server</strong> (backend) and receive responses. This client–server communication
+happens over the internet using standard protocols.</p>
+
+<div class="diagram">
+  <strong>The Client–Server Model</strong><br><br>
+  ┌──────────────────┐&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;┌──────────────────────┐<br>
+  │  Mobile App      │&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│  Backend Server      │<br>
+  │  (Client)        │ ─── Request ──→ │  (e.g. dummyjson.com)│<br>
+  │                  │ ←── Response ── │                      │<br>
+  └──────────────────┘&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└──────────────────────┘<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↕ Internet (HTTP/HTTPS)
+</div>
+
+<h3>REST API — the most common standard</h3>
+<p>REST (Representational State Transfer) is the dominant style for mobile–backend
+communication. It uses HTTP methods to describe what action to perform:</p>
+
+<table>
+  <tr>
+    <th>HTTP Method</th>
+    <th>Meaning</th>
+    <th>Example</th>
+  </tr>
+  <tr>
+    <td><strong>GET</strong></td>
+    <td>Read data</td>
+    <td><code>GET /products</code> → get all products</td>
+  </tr>
+  <tr>
+    <td><strong>POST</strong></td>
+    <td>Create new data</td>
+    <td><code>POST /orders</code> → place a new order</td>
+  </tr>
+  <tr>
+    <td><strong>PUT / PATCH</strong></td>
+    <td>Update existing data</td>
+    <td><code>PUT /users/5</code> → update user 5's profile</td>
+  </tr>
+  <tr>
+    <td><strong>DELETE</strong></td>
+    <td>Remove data</td>
+    <td><code>DELETE /cart/item/3</code> → remove item from cart</td>
+  </tr>
+</table>
+
+<h3>Key networking concerns for mobile apps</h3>
+<ul>
+  <li><strong>Offline handling</strong> — the network can disappear at any moment; show a meaningful error, don't crash</li>
+  <li><strong>Timeouts</strong> — if the server takes too long, give up and tell the user</li>
+  <li><strong>HTTPS only</strong> — never send data over plain HTTP; always use encrypted HTTPS</li>
+  <li><strong>Authentication headers</strong> — after login, every request must carry the token so the server knows who is asking</li>
+  <li><strong>Caching</strong> — avoid repeating the same request; save the result and reuse it</li>
+</ul>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  7. COMPONENT 5 — DEVICE APIs                              -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>7. Component 5 — Device APIs</h2>
+
+<p>A smartphone is far more than a small computer — it has hardware components that no
+desktop has. Mobile apps can access these through <strong>Device APIs</strong> provided
+by the operating system. The app must ask for <strong>permission</strong> before
+accessing most of them.</p>
+
+<table>
+  <tr>
+    <th>Device API</th>
+    <th>What It Provides</th>
+    <th>Example App Use</th>
+    <th>Permission Needed?</th>
+  </tr>
+  <tr>
+    <td><strong>Camera</strong></td>
+    <td>Take photos and videos</td>
+    <td>Profile picture, document scan, QR code</td>
+    <td>Yes</td>
+  </tr>
+  <tr>
+    <td><strong>GPS / Location</strong></td>
+    <td>Current latitude &amp; longitude</td>
+    <td>Map apps, delivery tracking, store finder</td>
+    <td>Yes</td>
+  </tr>
+  <tr>
+    <td><strong>Push Notifications</strong></td>
+    <td>Messages sent from server to device</td>
+    <td>Order updates, chat messages, news alerts</td>
+    <td>Yes (iOS)</td>
+  </tr>
+  <tr>
+    <td><strong>Biometrics</strong></td>
+    <td>Fingerprint / Face ID authentication</td>
+    <td>App lock, payment confirmation</td>
+    <td>Yes</td>
+  </tr>
+  <tr>
+    <td><strong>Accelerometer / Gyroscope</strong></td>
+    <td>Device motion and orientation</td>
+    <td>Step counter, game controls, screen rotation</td>
+    <td>No (usually)</td>
+  </tr>
+  <tr>
+    <td><strong>Contacts</strong></td>
+    <td>Phone address book</td>
+    <td>Find friends, share contact details</td>
+    <td>Yes</td>
+  </tr>
+  <tr>
+    <td><strong>Microphone</strong></td>
+    <td>Record audio</td>
+    <td>Voice search, voice messages, calls</td>
+    <td>Yes</td>
+  </tr>
+  <tr>
+    <td><strong>Bluetooth</strong></td>
+    <td>Short-range wireless communication</td>
+    <td>Connect to headphones, smartwatch, IoT devices</td>
+    <td>Yes</td>
+  </tr>
+</table>
+
+<div class="warn">
+  <strong>Always request only what you need.</strong> If your shopping app asks for access
+  to Contacts and Location, users will be suspicious. Request only the permissions that are
+  clearly necessary for your app's purpose. Both Apple and Google reject apps that
+  over-request permissions.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  8. COMPONENT 6 — AUTHENTICATION & SECURITY                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>8. Component 6 — Authentication &amp; Security</h2>
+
+<p>Security in mobile apps works on multiple levels:</p>
+
+<h3>Authentication Methods</h3>
+<table>
+  <tr>
+    <th>Method</th>
+    <th>How it works</th>
+    <th>Example</th>
+  </tr>
+  <tr>
+    <td><strong>Username + Password</strong></td>
+    <td>User enters credentials; server checks and returns a token</td>
+    <td>What we built in Lecture 13</td>
+  </tr>
+  <tr>
+    <td><strong>Social Login</strong></td>
+    <td>Login via Google, Apple, Facebook — they handle the password</td>
+    <td>"Sign in with Google"</td>
+  </tr>
+  <tr>
+    <td><strong>OTP (One-Time Password)</strong></td>
+    <td>A code is sent via SMS or email; valid for a short time</td>
+    <td>Bank apps, two-factor authentication</td>
+  </tr>
+  <tr>
+    <td><strong>Biometric</strong></td>
+    <td>Fingerprint or Face ID — no password typed at all</td>
+    <td>Unlock a banking app after initial login</td>
+  </tr>
+</table>
+
+<h3>Token Types</h3>
+<div class="two-col">
+  <div class="box">
+    <h4>Session Token</h4>
+    <p>A random string the server generates. The server stores a mapping of token → user.
+    Simple, but requires the server to remember every active session.</p>
+    <p><em>Used by: reqres.in (what we built with)</em></p>
+  </div>
+  <div class="box">
+    <h4>JWT (JSON Web Token)</h4>
+    <p>A self-contained token that encodes the user's identity inside it. The server doesn't
+    need to store anything — it just verifies the signature.</p>
+    <p><em>Used by: most modern REST APIs</em></p>
+  </div>
+</div>
+
+<h3>Secure Storage Rules for Mobile</h3>
+<ol>
+  <li><strong>Never store passwords in plain text</strong> — only tokens should be stored after login</li>
+  <li><strong>Use the platform's secure storage</strong> for sensitive tokens (Keychain on iOS, Keystore on Android)</li>
+  <li><strong>Use HTTPS everywhere</strong> — plain HTTP exposes data to anyone on the same WiFi</li>
+  <li><strong>Do not log sensitive data</strong> — don't print tokens or passwords to the console in production</li>
+</ol>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  9. COMPONENT 7 — PUSH NOTIFICATIONS                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>9. Component 7 — Push Notifications</h2>
+
+<p>Push notifications are messages sent <em>from the server to the device</em>, even when
+the app is not open. This is the opposite of the usual request–response model where the
+app asks first.</p>
+
+<div class="diagram">
+  <strong>Normal flow (pull):</strong><br>
+  App → "Give me updates" → Server → "Here they are"<br><br>
+  <strong>Push notification flow:</strong><br>
+  Server → "Here is an update for you" → Device → shows notification banner
+</div>
+
+<h3>How Push Works</h3>
+<ol>
+  <li>The app registers with the platform's notification service (APNs on iOS, FCM on Android)</li>
+  <li>The platform gives the app a unique <strong>device token</strong></li>
+  <li>The app sends that token to your server</li>
+  <li>When your server wants to notify the user, it sends the message to APNs/FCM along with the device token</li>
+  <li>APNs/FCM delivers the notification to the device</li>
+</ol>
+
+<table>
+  <tr>
+    <th>Platform</th>
+    <th>Notification Service</th>
+    <th>Flutter Package</th>
+  </tr>
+  <tr>
+    <td>iOS</td>
+    <td>APNs (Apple Push Notification service)</td>
+    <td rowspan="2"><code>firebase_messaging</code></td>
+  </tr>
+  <tr>
+    <td>Android</td>
+    <td>FCM (Firebase Cloud Messaging)</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  10. COMPONENT 8 — APP LIFECYCLE                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>10. Component 8 — App Lifecycle</h2>
+
+<p>A mobile app is not always "running" in the way a desktop app is. The operating system
+controls the app's <strong>lifecycle</strong> — it can pause, resume, or kill the app
+without warning. Understanding lifecycle is essential for building apps that behave correctly.</p>
+
+<table>
+  <tr>
+    <th>State</th>
+    <th>What it means</th>
+    <th>What you should do</th>
+  </tr>
+  <tr>
+    <td><strong>Foreground</strong></td>
+    <td>App is visible; user is interacting</td>
+    <td>Normal operation; update UI, play media</td>
+  </tr>
+  <tr>
+    <td><strong>Background</strong></td>
+    <td>App is not visible but still running (briefly)</td>
+    <td>Save state; pause heavy operations; stop the camera</td>
+  </tr>
+  <tr>
+    <td><strong>Suspended / Killed</strong></td>
+    <td>OS has paused or terminated the app to free memory</td>
+    <td>On next open, restore state from local storage</td>
+  </tr>
+</table>
+
+<div class="diagram">
+  User opens app → <strong>Foreground</strong><br>
+  User presses Home button → <strong>Background</strong><br>
+  OS needs RAM → <strong>Killed</strong> (app process ended, data in RAM lost)<br>
+  User taps app icon again → <strong>Foreground</strong> (app restarts from scratch)<br><br>
+  ↳ This is why we save important data to <strong>SharedPreferences</strong> or a database —<br>
+  &nbsp;&nbsp;RAM is not reliable across app sessions.
+</div>
+
+<div class="tip">
+  <strong>In our app:</strong> We already handle this correctly. The auth token is saved
+  to <code>SharedPreferences</code> (Lecture 7), so when the OS kills and restarts the app,
+  the user is still logged in. The theme choice (Lecture 14) is also persisted the same way.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  11. FULL COMPONENT MAP — OUR APP                          -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>11. Full Component Map — Our Shopping App</h2>
+
+<p>Let's map every generic component we discussed to the actual code in our app:</p>
+
+<table>
+  <tr>
+    <th>Generic Component</th>
+    <th>Our Implementation</th>
+    <th>File(s)</th>
+  </tr>
+  <tr>
+    <td>Screens / UI</td>
+    <td>Login, Register, Home, Search, Cart, Profile, Product Detail</td>
+    <td><code>lib/screens/*.dart</code></td>
+  </tr>
+  <tr>
+    <td>Reusable UI components</td>
+    <td>TopHeader, BottomNavBar</td>
+    <td><code>lib/components/*.dart</code></td>
+  </tr>
+  <tr>
+    <td>Navigation (stack)</td>
+    <td><code>Navigator.push()</code> to product detail</td>
+    <td><code>home.dart</code></td>
+  </tr>
+  <tr>
+    <td>Navigation (tabs)</td>
+    <td><code>IndexedStack</code> + <code>BottomNavigationBar</code></td>
+    <td><code>home.dart</code>, <code>bottom_nav_bar.dart</code></td>
+  </tr>
+  <tr>
+    <td>Business Logic / State</td>
+    <td><code>CartProvider</code>, <code>AuthProvider</code>, <code>ThemeProvider</code></td>
+    <td><code>lib/providers/*.dart</code></td>
+  </tr>
+  <tr>
+    <td>Networking / REST API</td>
+    <td>HTTP calls to dummyjson.com (products) and reqres.in (auth)</td>
+    <td><code>product_service.dart</code>, <code>auth_service.dart</code></td>
+  </tr>
+  <tr>
+    <td>Key-Value Storage</td>
+    <td><code>SharedPreferences</code> for auth token, email, theme, profile info</td>
+    <td><code>user_storage.dart</code></td>
+  </tr>
+  <tr>
+    <td>Authentication</td>
+    <td>Login / Register / Token / Session restore / Logout</td>
+    <td><code>auth_provider.dart</code>, <code>auth_service.dart</code></td>
+  </tr>
+  <tr>
+    <td>App Lifecycle (implicit)</td>
+    <td>Token &amp; theme persisted → user stays logged in across restarts</td>
+    <td><code>splash.dart</code>, <code>theme_provider.dart</code></td>
+  </tr>
+  <tr>
+    <td>Data model</td>
+    <td><code>Product</code> class with <code>fromJson()</code></td>
+    <td><code>lib/models/product.dart</code></td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  12. iOS vs ANDROID                                        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>12. iOS vs Android — Same Components, Different Names</h2>
+
+<p>iOS and Android implement all the same components but use different terminology
+and APIs. Flutter abstracts over both so you write one codebase:</p>
+
+<table>
+  <tr>
+    <th>Concept</th>
+    <th>iOS (Swift/UIKit)</th>
+    <th>Android (Kotlin/Java)</th>
+    <th>Flutter</th>
+  </tr>
+  <tr>
+    <td>A full screen</td>
+    <td>UIViewController</td>
+    <td>Activity / Fragment</td>
+    <td>Widget (Scaffold)</td>
+  </tr>
+  <tr>
+    <td>List of items</td>
+    <td>UITableView</td>
+    <td>RecyclerView</td>
+    <td>ListView</td>
+  </tr>
+  <tr>
+    <td>Key-value storage</td>
+    <td>UserDefaults</td>
+    <td>SharedPreferences</td>
+    <td>shared_preferences package</td>
+  </tr>
+  <tr>
+    <td>Local database</td>
+    <td>Core Data / SQLite</td>
+    <td>Room / SQLite</td>
+    <td>sqflite package</td>
+  </tr>
+  <tr>
+    <td>Secure token storage</td>
+    <td>Keychain</td>
+    <td>Keystore / EncryptedSharedPrefs</td>
+    <td>flutter_secure_storage package</td>
+  </tr>
+  <tr>
+    <td>Push notifications</td>
+    <td>APNs</td>
+    <td>FCM</td>
+    <td>firebase_messaging package</td>
+  </tr>
+  <tr>
+    <td>App entry point</td>
+    <td>AppDelegate</td>
+    <td>MainActivity</td>
+    <td><code>main()</code> → <code>runApp()</code></td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  PRACTICE TASK                                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>Practice Task</h2>
+<ol>
+  <li>Draw the three-layer architecture diagram on paper and fill in the names of the actual
+      files from our app in each layer.</li>
+  <li>Open any app on your phone (Instagram, WhatsApp, a banking app). For each generic
+      component in this lecture, identify whether that app uses it and give one concrete example.</li>
+  <li>Look at <code>auth_service.dart</code> in our project — which layer does it belong to?
+      What about <code>auth_provider.dart</code>? Are they in the same layer?</li>
+  <li><strong>Challenge:</strong> Our app currently stores the auth token in plain
+      <code>SharedPreferences</code>. Research the <code>flutter_secure_storage</code>
+      package. Why is it more secure? What device feature does it use on iOS and Android?</li>
+  <li><strong>Challenge:</strong> Think about a food delivery app like Foodpanda. List
+      at least 5 device APIs it likely uses and explain why each one is needed.</li>
+</ol>
+
+<div class="success">
+  <strong>Key Takeaway:</strong> Every mobile app — from a simple notes app to Instagram —
+  is built from the same fundamental components: a UI layer, a business logic layer,
+  and a data layer. The UI shows things, the business logic decides things, and the data
+  layer stores and fetches things. Keeping these three concerns separate is what makes apps
+  maintainable, testable, and scalable. Everything we have built so far fits neatly into
+  this structure.
+</div>
+
+</body>
+</html>
