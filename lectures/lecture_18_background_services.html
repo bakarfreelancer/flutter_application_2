@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 18 – Background Services in Mobile Applications</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px; color: #1a1a1a; background: #fff;
+      padding: 40px; max-width: 860px; margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800; color: white;
+      padding: 28px 32px; border-radius: 8px; margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p  { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+    .fn  { color: #f9e2af; }
+
+    .tip    { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+    .warn   { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+    .success{ background: #e8f5e9; border-left: 4px solid #388e3c; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .success strong { color: #2e7d32; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2.2; margin: 12px 0; text-align: center; color: #444; }
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .two-col   { display: grid; grid-template-columns: 1fr 1fr;    gap: 16px; margin: 12px 0; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 12px 0; }
+    .box { background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; padding: 14px; font-size: 13px; }
+    .box h4 { margin-bottom: 8px; color: #444; font-size: 13px; }
+    .bad  { border-top: 3px solid #e53935; }
+    .good { border-top: 3px solid #43a047; }
+    .type-one  { border-top: 4px solid #42a5f5; }
+    .type-per  { border-top: 4px solid #66bb6a; }
+    .type-fg   { border-top: 4px solid #ef5350; }
+
+    @media print {
+      body { padding: 20px; }
+      pre  { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  HEADER                                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <div class="course">BS — MOBILE APPLICATION DEVELOPMENT · FLUTTER</div>
+  <h1>Lecture 18 — Background Services</h1>
+  <div class="meta">Topics: Background Tasks · Foreground Services · WorkManager · BGTaskScheduler · workmanager Package · Battery Restrictions</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  OBJECTIVES                                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ul>
+    <li>Understand what a background service is and why mobile apps need them</li>
+    <li>Understand why operating systems aggressively restrict background work</li>
+    <li>Distinguish between the three types of background work: one-time tasks, periodic tasks, and foreground services</li>
+    <li>Understand how Android (WorkManager) and iOS (BGTaskScheduler) implement background execution</li>
+    <li>Use Flutter's <code>workmanager</code> package to schedule background tasks</li>
+    <li>Know the constraints system — tell the OS <em>when</em> your task is allowed to run</li>
+    <li>Understand what a Foreground Service is and when it is required</li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  1. WHAT IS A BACKGROUND SERVICE?                          -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>1. What Is a Background Service?</h2>
+
+<p>In Lecture 16 we learned that a mobile app has a lifecycle: it can be in the
+foreground (visible), in the background (not visible but briefly running), or killed
+(process ended). A <strong>background service</strong> is code that runs
+<em>even when the app is not visible to the user</em>.</p>
+
+<p>Without background services, apps could only do work while the user was actively
+looking at them. With background services, apps can:</p>
+
+<ul>
+  <li>Sync data with the server while the user is doing something else</li>
+  <li>Download a file after the user closes the app</li>
+  <li>Track location for a navigation or delivery app</li>
+  <li>Play music after the user switches to another app</li>
+  <li>Send a local reminder notification at a scheduled time</li>
+  <li>Upload photos to the cloud when connected to WiFi at night</li>
+</ul>
+
+<div class="diagram">
+  <strong>Foreground Work vs Background Work</strong><br><br>
+  User opens app → taps "Download" → app visible → <strong>Foreground work</strong><br>
+  User presses Home → app hidden → download continues → <strong>Background work</strong><br>
+  User opens another app → your app is invisible → download still running → <strong>Background service</strong><br>
+  User's phone is on the charger at night → your app syncs data → <strong>Scheduled background task</strong>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  2. WHY THE OS RESTRICTS BACKGROUND WORK                   -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>2. Why Operating Systems Restrict Background Work</h2>
+
+<p>You might wonder: why can't apps just run in the background freely? The answer is
+that <strong>background work costs battery</strong>. Every instruction the CPU executes,
+every byte sent over the network, every GPS reading — all drain battery.</p>
+
+<p>If every installed app ran freely in the background at all times:</p>
+<ul>
+  <li>A phone with 50 installed apps would drain in 2–3 hours</li>
+  <li>Users would uninstall any app they suspected of draining battery</li>
+  <li>The device would get hot</li>
+</ul>
+
+<p>To protect the user, both Android and iOS introduced increasingly strict
+<strong>background execution limits</strong> over the years:</p>
+
+<table>
+  <tr>
+    <th>Year</th>
+    <th>Platform</th>
+    <th>Restriction Introduced</th>
+  </tr>
+  <tr>
+    <td>2016</td>
+    <td>Android 6 (Doze)</td>
+    <td>Phone in standby → background network &amp; CPU frozen</td>
+  </tr>
+  <tr>
+    <td>2017</td>
+    <td>Android 8</td>
+    <td>Background services killed after app is backgrounded; use JobScheduler</td>
+  </tr>
+  <tr>
+    <td>2019</td>
+    <td>Android 10</td>
+    <td>Background location heavily restricted; must show notification</td>
+  </tr>
+  <tr>
+    <td>2013</td>
+    <td>iOS 7</td>
+    <td>Background App Refresh introduced — OS decides when to run your task</td>
+  </tr>
+  <tr>
+    <td>2019</td>
+    <td>iOS 13</td>
+    <td>BGTaskScheduler replaces older APIs; strict time limits enforced</td>
+  </tr>
+</table>
+
+<div class="warn">
+  <strong>The OS is in charge — not your app.</strong> You cannot force a background task
+  to run exactly when you want. You register a task and tell the OS your constraints
+  (needs WiFi, needs charging, etc.). The OS decides the actual execution time based on
+  battery level, network state, and what other apps are doing.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  3. THREE TYPES OF BACKGROUND WORK                         -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>3. The Three Types of Background Work</h2>
+
+<p>Every background use case fits into one of three categories:</p>
+
+<div class="three-col">
+  <div class="box type-one">
+    <h4>One-Time Task</h4>
+    <p>A single piece of work that should complete even if the app is closed.</p>
+    <p><strong>Examples:</strong> upload a photo, send a log report, sync after login</p>
+    <p><strong>OS behaviour:</strong> runs once, retries on failure, then done</p>
+    <p><em>Android: OneTimeWorkRequest<br>iOS: BGProcessingTask</em></p>
+  </div>
+  <div class="box type-per">
+    <h4>Periodic Task</h4>
+    <p>Work that repeats on a schedule (e.g. every 15 minutes or every day).</p>
+    <p><strong>Examples:</strong> sync emails, refresh news feed, backup data</p>
+    <p><strong>OS behaviour:</strong> OS decides exact timing; minimum interval is 15 minutes</p>
+    <p><em>Android: PeriodicWorkRequest<br>iOS: BGAppRefreshTask</em></p>
+  </div>
+  <div class="box type-fg">
+    <h4>Foreground Service</h4>
+    <p>Long-running work that the user is aware of — shown as a persistent notification.</p>
+    <p><strong>Examples:</strong> navigation turn-by-turn, music playback, active download, fitness tracking</p>
+    <p><strong>OS behaviour:</strong> runs until explicitly stopped; notification cannot be hidden</p>
+    <p><em>Android: ForegroundService<br>iOS: long-running background modes</em></p>
+  </div>
+</div>
+
+<div class="tip">
+  <strong>Rule of thumb:</strong> If the user explicitly started an ongoing activity
+  (navigation, music, workout), use a Foreground Service. If you need to do maintenance
+  work while the user isn't watching (sync, backup), use a Periodic Task. If you need
+  to finish something the user just triggered (upload a photo), use a One-Time Task.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  4. HOW ANDROID HANDLES BACKGROUND WORK — WorkManager      -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>4. How Android Handles Background Work — WorkManager</h2>
+
+<p><strong>WorkManager</strong> is Google's officially recommended API for background work
+on Android. It is battery-aware, survives app restarts and device reboots, and handles
+retries automatically.</p>
+
+<h3>WorkManager Concepts</h3>
+
+<table>
+  <tr>
+    <th>Concept</th>
+    <th>What it is</th>
+  </tr>
+  <tr>
+    <td><code>Worker</code></td>
+    <td>A class you write that contains the actual background code (what to do)</td>
+  </tr>
+  <tr>
+    <td><code>WorkRequest</code></td>
+    <td>Describes when and how to run the Worker (one-time vs periodic, constraints)</td>
+  </tr>
+  <tr>
+    <td><code>Constraints</code></td>
+    <td>Conditions that must be met before the task runs (WiFi, charging, storage available)</td>
+  </tr>
+  <tr>
+    <td><code>WorkManager.enqueue()</code></td>
+    <td>Registers the task with the OS scheduler</td>
+  </tr>
+</table>
+
+<h3>How WorkManager decides when to run your task</h3>
+
+<div class="diagram">
+  Your app calls <code>WorkManager.enqueue(myTask, constraints)</code><br>
+  ↓<br>
+  WorkManager stores the task in a local SQLite database (survives reboots)<br>
+  ↓<br>
+  OS checks constraints periodically:<br>
+  "Is WiFi connected? Is battery above 20%? Is device idle?"<br>
+  ↓<br>
+  All constraints met → OS wakes up your Worker → runs your code<br>
+  ↓<br>
+  Worker returns SUCCESS or RETRY → WorkManager handles the result
+</div>
+
+<h3>WorkManager — Android Kotlin example (for understanding)</h3>
+
+<span class="filepath">Android Kotlin — concept only, not Flutter code</span>
+<pre>
+<span class="cm">// Step 1: Define the Worker — what work to do</span>
+<span class="kw">class</span> <span class="cl">SyncWorker</span>(context: <span class="cl">Context</span>, params: <span class="cl">WorkerParameters</span>)
+    : <span class="cl">CoroutineWorker</span>(context, params) {
+
+  <span class="kw">override suspend fun</span> <span class="fn">doWork</span>(): <span class="cl">Result</span> {
+    <span class="fn">syncDataWithServer</span>() <span class="cm">// your actual work here</span>
+    <span class="kw">return</span> <span class="cl">Result</span>.<span class="fn">success</span>()   <span class="cm">// or Result.retry() / Result.failure()</span>
+  }
+}
+
+<span class="cm">// Step 2: Define constraints — conditions that must be true</span>
+<span class="kw">val</span> constraints = <span class="cl">Constraints</span>.<span class="cl">Builder</span>()
+  .<span class="fn">setRequiredNetworkType</span>(<span class="cl">NetworkType</span>.CONNECTED) <span class="cm">// needs internet</span>
+  .<span class="fn">setRequiresCharging</span>(<span class="kw">true</span>)                    <span class="cm">// only when plugged in</span>
+  .<span class="fn">build</span>()
+
+<span class="cm">// Step 3: Schedule the task</span>
+<span class="kw">val</span> request = <span class="cl">PeriodicWorkRequestBuilder</span>&lt;<span class="cl">SyncWorker</span>&gt;(
+    <span class="num">1</span>, <span class="cl">TimeUnit</span>.HOURS <span class="cm">// run every 1 hour (minimum is 15 minutes)</span>
+  )
+  .<span class="fn">setConstraints</span>(constraints)
+  .<span class="fn">build</span>()
+
+<span class="cl">WorkManager</span>.<span class="fn">getInstance</span>(context).<span class="fn">enqueue</span>(request)
+</pre>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  5. HOW iOS HANDLES BACKGROUND WORK                        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>5. How iOS Handles Background Work — BGTaskScheduler</h2>
+
+<p>iOS is even more restrictive than Android about background execution. All background
+tasks must be <strong>registered</strong> in the app's Info.plist file before the app
+ships. The OS decides exactly when they run based on machine learning — it learns the
+user's habits (e.g. the user charges their phone at 11pm and checks news at 7am, so
+iOS runs a news refresh at 6:55am).</p>
+
+<h3>iOS Background Task Types</h3>
+
+<table>
+  <tr>
+    <th>Task Type</th>
+    <th>API</th>
+    <th>Time Limit</th>
+    <th>Best For</th>
+  </tr>
+  <tr>
+    <td>App Refresh</td>
+    <td><code>BGAppRefreshTask</code></td>
+    <td>~30 seconds</td>
+    <td>Quick data sync, fetch new content</td>
+  </tr>
+  <tr>
+    <td>Processing Task</td>
+    <td><code>BGProcessingTask</code></td>
+    <td>Minutes (device must be idle &amp; charging)</td>
+    <td>Heavy work: ML model updates, database migration</td>
+  </tr>
+  <tr>
+    <td>Background Mode</td>
+    <td>Declared in Info.plist</td>
+    <td>Unlimited (but scrutinised by App Store review)</td>
+    <td>Audio, location, VoIP, Bluetooth — ongoing services</td>
+  </tr>
+</table>
+
+<div class="warn">
+  <strong>iOS time limits are hard.</strong> If your <code>BGAppRefreshTask</code> runs
+  longer than ~30 seconds, iOS kills it. Apple's App Store review team rejects apps that
+  abuse background modes (e.g. declaring location mode but not actually needing it).
+  Every background mode you declare must be justified in your App Store submission.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  6. FLUTTER — workmanager PACKAGE                          -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>6. Flutter — The workmanager Package</h2>
+
+<p>Flutter provides the <code>workmanager</code> package, which wraps WorkManager on
+Android and BGTaskScheduler on iOS behind a single Dart API. You write one piece of
+code and it works on both platforms.</p>
+
+<h3>Add the dependency</h3>
+
+<span class="filepath">pubspec.yaml</span>
+<pre>
+dependencies:
+  workmanager: ^0.5.2
+</pre>
+
+<h3>How workmanager works in Flutter</h3>
+
+<div class="diagram">
+  Your Dart code → workmanager.registerTask()<br>
+  ↓<br>
+  On Android: registers with WorkManager<br>
+  On iOS: registers with BGTaskScheduler<br>
+  ↓<br>
+  OS decides when to run it<br>
+  ↓<br>
+  OS launches a NEW Dart isolate (your main app may not be running!)<br>
+  ↓<br>
+  Your callbackDispatcher function runs with the task name<br>
+  ↓<br>
+  Task completes → Isolate shuts down
+</pre>
+</div>
+
+<div class="warn">
+  <strong>Critical point:</strong> When a background task runs, it starts a
+  <strong>brand-new Dart Isolate</strong> — completely separate from your running app.
+  This means your Providers, Navigator, BuildContext, and in-memory state are
+  <strong>not available</strong>. The background task can only use packages that work
+  without Flutter UI — like <code>http</code>, <code>shared_preferences</code>,
+  or <code>sqflite</code>.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  7. STEP-BY-STEP IMPLEMENTATION                            -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>7. Step-by-Step: Scheduling a Background Sync Task</h2>
+
+<p>Let's implement a periodic background task that checks for new products every 15
+minutes — even when the app is closed.</p>
+
+<h3>Step 1 — The callbackDispatcher (top-level function)</h3>
+
+<p>The <code>callbackDispatcher</code> is the entry point for all background tasks.
+It must be a <strong>top-level function</strong> (not inside any class) because it runs
+in a separate Isolate.</p>
+
+<span class="filepath">lib/main.dart  (add at the top, outside main())</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:workmanager/workmanager.dart'</span>;
+
+<span class="cm">// This is the function the OS calls when a background task fires.
+// It MUST be a top-level function — not inside a class.
+// It runs in its own Isolate — no access to app state or BuildContext.</span>
+<span class="kw">@pragma</span>(<span class="st">'vm:entry-point'</span>) <span class="cm">// tells Dart not to tree-shake this function</span>
+<span class="kw">void</span> <span class="fn">callbackDispatcher</span>() {
+  <span class="cl">Workmanager</span>().<span class="fn">executeTask</span>((taskName, inputData) <span class="kw">async</span> {
+    <span class="cm">// taskName tells us which task was triggered</span>
+    <span class="kw">switch</span> (taskName) {
+      <span class="kw">case</span> <span class="st">'syncProducts'</span>:
+        <span class="kw">await</span> <span class="fn">_runProductSync</span>();
+        <span class="kw">break</span>;
+      <span class="kw">case</span> <span class="st">'dailyCleanup'</span>:
+        <span class="kw">await</span> <span class="fn">_runCleanup</span>();
+        <span class="kw">break</span>;
+    }
+    <span class="kw">return</span> <span class="cl">Future</span>.<span class="fn">value</span>(<span class="kw">true</span>); <span class="cm">// true = success, false = failure (triggers retry)</span>
+  });
+}
+
+<span class="cm">// The actual sync work — only uses http and SharedPreferences (no UI)</span>
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">_runProductSync</span>() <span class="kw">async</span> {
+  <span class="kw">try</span> {
+    <span class="kw">final</span> products = <span class="kw">await</span> <span class="cl">ProductService</span>.<span class="fn">getProducts</span>();
+    <span class="cm">// Save the result to SharedPreferences or a local database</span>
+    <span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.<span class="fn">getInstance</span>();
+    <span class="kw">await</span> prefs.<span class="fn">setInt</span>(<span class="st">'last_sync_count'</span>, products.length);
+    <span class="kw">await</span> prefs.<span class="fn">setString</span>(<span class="st">'last_sync_time'</span>, <span class="cl">DateTime</span>.now().<span class="fn">toIso8601String</span>());
+    <span class="fn">print</span>(<span class="st">'Background sync: fetched </span>${products.length}<span class="st"> products'</span>);
+  } <span class="kw">catch</span> (e) {
+    <span class="fn">print</span>(<span class="st">'Background sync failed: $e'</span>);
+  }
+}
+</pre>
+
+<h3>Step 2 — Initialise Workmanager in main()</h3>
+
+<span class="filepath">lib/main.dart  (inside main())</span>
+<pre>
+<span class="kw">void</span> <span class="fn">main</span>() <span class="kw">async</span> {
+  <span class="cm">// Required when calling native code before runApp()</span>
+  <span class="cl">WidgetsFlutterBinding</span>.<span class="fn">ensureInitialized</span>();
+
+  <span class="cm">// Initialise Workmanager and tell it where the callback lives</span>
+  <span class="kw">await</span> <span class="cl">Workmanager</span>().<span class="fn">initialize</span>(
+    callbackDispatcher,  <span class="cm">// the top-level function we wrote above</span>
+    isInDebugMode: <span class="kw">false</span>, <span class="cm">// set to true during development to see logs</span>
+  );
+
+  <span class="fn">runApp</span>( <span class="cm">/* ... your MultiProvider + MaterialApp ... */</span> );
+}
+</pre>
+
+<h3>Step 3 — Register the task from the app</h3>
+
+<p>Call this from wherever it makes sense — for example, right after the user
+logs in, or when the app first opens.</p>
+
+<pre>
+<span class="cm">// Register a PERIODIC task — runs roughly every 15 minutes
+// (15 minutes is the minimum allowed by both Android and iOS)</span>
+<span class="kw">await</span> <span class="cl">Workmanager</span>().<span class="fn">registerPeriodicTask</span>(
+  <span class="st">'product-sync-task'</span>,  <span class="cm">// unique task ID — used to cancel it later</span>
+  <span class="st">'syncProducts'</span>,        <span class="cm">// task name passed to callbackDispatcher</span>
+  frequency: <span class="kw">const</span> <span class="cl">Duration</span>(minutes: <span class="num">15</span>),
+  constraints: <span class="cl">Constraints</span>(
+    networkType: <span class="cl">NetworkType</span>.connected, <span class="cm">// only run when online</span>
+    requiresBatteryNotLow: <span class="kw">true</span>,         <span class="cm">// skip when battery is critical</span>
+  ),
+  existingWorkPolicy: <span class="cl">ExistingWorkPolicy</span>.keep,
+  <span class="cm">// keep = if already scheduled, don't schedule again (prevents duplicates)</span>
+);
+</pre>
+
+<pre>
+<span class="cm">// Register a ONE-TIME task — runs once as soon as constraints are met</span>
+<span class="kw">await</span> <span class="cl">Workmanager</span>().<span class="fn">registerOneOffTask</span>(
+  <span class="st">'cleanup-task'</span>,
+  <span class="st">'dailyCleanup'</span>,
+  initialDelay: <span class="kw">const</span> <span class="cl">Duration</span>(seconds: <span class="num">10</span>), <span class="cm">// wait 10s before running</span>
+  constraints: <span class="cl">Constraints</span>(
+    networkType: <span class="cl">NetworkType</span>.not_required,
+    requiresCharging: <span class="kw">true</span>, <span class="cm">// only run when plugged in</span>
+  ),
+);
+</pre>
+
+<pre>
+<span class="cm">// Cancel a specific task by its unique ID</span>
+<span class="kw">await</span> <span class="cl">Workmanager</span>().<span class="fn">cancelByUniqueName</span>(<span class="st">'product-sync-task'</span>);
+
+<span class="cm">// Cancel ALL registered tasks</span>
+<span class="kw">await</span> <span class="cl">Workmanager</span>().<span class="fn">cancelAll</span>();
+</pre>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  8. CONSTRAINTS SYSTEM                                     -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>8. The Constraints System</h2>
+
+<p>Constraints tell the OS the conditions under which your task is <em>allowed</em>
+to run. The OS will not run your task until all constraints are satisfied.
+This is how you make your app a good citizen — you tell the OS
+"only run my sync when the user is on WiFi and charging, so they don't pay for
+mobile data and don't lose battery."</p>
+
+<table>
+  <tr>
+    <th>Constraint</th>
+    <th>Meaning</th>
+    <th>Good for</th>
+  </tr>
+  <tr>
+    <td><code>networkType: connected</code></td>
+    <td>Any internet connection (WiFi or mobile data)</td>
+    <td>Quick API calls, sending logs</td>
+  </tr>
+  <tr>
+    <td><code>networkType: unmetered</code></td>
+    <td>WiFi only (not mobile data)</td>
+    <td>Large downloads, video sync, backup</td>
+  </tr>
+  <tr>
+    <td><code>networkType: not_required</code></td>
+    <td>No internet required</td>
+    <td>Local database cleanup, file compression</td>
+  </tr>
+  <tr>
+    <td><code>requiresBatteryNotLow: true</code></td>
+    <td>Battery must not be critically low (&lt;15%)</td>
+    <td>Any background task — always good practice</td>
+  </tr>
+  <tr>
+    <td><code>requiresCharging: true</code></td>
+    <td>Device must be plugged in</td>
+    <td>Heavy work: full backup, ML processing, large uploads</td>
+  </tr>
+  <tr>
+    <td><code>requiresDeviceIdle: true</code></td>
+    <td>Device must be idle (Android only)</td>
+    <td>Non-urgent maintenance: database vacuuming, log rotation</td>
+  </tr>
+  <tr>
+    <td><code>requiresStorageNotLow: true</code></td>
+    <td>Device storage must not be critically low</td>
+    <td>Any task that writes files or data</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  9. FOREGROUND SERVICES                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>9. Foreground Services — Long-Running User-Visible Work</h2>
+
+<p>A <strong>Foreground Service</strong> is a background service that the user is
+<em>aware of</em>. Unlike background tasks that run silently, a Foreground Service
+<strong>must display a persistent notification</strong> in the system notification
+bar as long as it is running. This is required by Android and is the iOS equivalent
+of a long-running background mode.</p>
+
+<h3>When is a Foreground Service required?</h3>
+
+<table>
+  <tr>
+    <th>Use Case</th>
+    <th>Why Foreground Service?</th>
+    <th>App Example</th>
+  </tr>
+  <tr>
+    <td>Music playback</td>
+    <td>Must keep playing after app is closed; user controls it from notification</td>
+    <td>Spotify, YouTube Music</td>
+  </tr>
+  <tr>
+    <td>Turn-by-turn navigation</td>
+    <td>Needs continuous GPS while user drives and switches apps</td>
+    <td>Google Maps, Waze</td>
+  </tr>
+  <tr>
+    <td>Live workout tracking</td>
+    <td>Records steps, heart rate, distance while user is active</td>
+    <td>Strava, Nike Run Club</td>
+  </tr>
+  <tr>
+    <td>Active file download</td>
+    <td>User triggered a large download; it must finish even if they switch apps</td>
+    <td>Any download manager</td>
+  </tr>
+  <tr>
+    <td>Live location sharing</td>
+    <td>Continuously sends GPS coordinates to a server for others to see</td>
+    <td>WhatsApp Live Location, Uber driver app</td>
+  </tr>
+  <tr>
+    <td>VoIP call</td>
+    <td>Must keep audio flowing even when the user locks the phone</td>
+    <td>WhatsApp, Zoom, Teams</td>
+  </tr>
+</table>
+
+<h3>How a Foreground Service notification looks</h3>
+
+<div class="diagram">
+  ┌──────────────────────────────────────────────────────────┐<br>
+  │ 🎵 Spotify                                        9:41 AM │<br>
+  │ &nbsp;&nbsp;&nbsp; Blinding Lights — The Weeknd                          │<br>
+  │ &nbsp;&nbsp;&nbsp; [⏮]  [⏸]  [⏭]                                          │<br>
+  └──────────────────────────────────────────────────────────┘<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↑ This notification stays in the tray as long as the service runs.<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;The user can tap it to go back to the app, or interact with it directly.
+</div>
+
+<div class="tip">
+  <strong>The notification is not optional.</strong> Android will throw an exception if
+  you start a Foreground Service without calling <code>startForeground()</code> with a
+  notification within 5 seconds. On iOS, background modes like audio and location
+  automatically show status bar indicators.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  10. THE FULL BACKGROUND WORK DECISION TREE                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>10. Which Background Approach to Use — Decision Guide</h2>
+
+<div class="diagram">
+  Is the work something the user is actively watching (music, navigation, call)?<br>
+  → YES → <strong>Foreground Service</strong> (with visible notification)<br>
+  → NO ↓<br><br>
+  Does it need to happen exactly once and soon (upload a file after user taps send)?<br>
+  → YES → <strong>One-Time Task</strong> (workmanager.registerOneOffTask)<br>
+  → NO ↓<br><br>
+  Should it repeat on a schedule (sync every 15 min, backup every day)?<br>
+  → YES → <strong>Periodic Task</strong> (workmanager.registerPeriodicTask)<br>
+  → NO ↓<br><br>
+  Does the work only need to run while the app is in memory?<br>
+  → YES → <strong>Dart Isolate / compute()</strong> (see Lecture 17)<br>
+  → You probably don't need a background service at all
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  11. PLATFORM COMPARISON                                   -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>11. Platform Comparison</h2>
+
+<table>
+  <tr>
+    <th>Feature</th>
+    <th>Android</th>
+    <th>iOS</th>
+    <th>Flutter (workmanager)</th>
+  </tr>
+  <tr>
+    <td>Background task API</td>
+    <td>WorkManager</td>
+    <td>BGTaskScheduler</td>
+    <td>workmanager package (wraps both)</td>
+  </tr>
+  <tr>
+    <td>Minimum periodic interval</td>
+    <td>15 minutes</td>
+    <td>OS decides (usually hours)</td>
+    <td>15 minutes (Android) / OS-controlled (iOS)</td>
+  </tr>
+  <tr>
+    <td>Guaranteed execution time?</td>
+    <td>No — OS may delay</td>
+    <td>No — OS uses ML to schedule</td>
+    <td>No — constraints must be met</td>
+  </tr>
+  <tr>
+    <td>Survives device reboot?</td>
+    <td>Yes (WorkManager persists to DB)</td>
+    <td>Yes (re-registered on launch)</td>
+    <td>Yes (Android) / Re-register on launch (iOS)</td>
+  </tr>
+  <tr>
+    <td>Foreground service</td>
+    <td>Yes — required notification</td>
+    <td>Background modes (audio, location, etc.)</td>
+    <td>flutter_background_service package</td>
+  </tr>
+  <tr>
+    <td>Constraints system</td>
+    <td>Yes — network, charging, idle</td>
+    <td>Partial — charging, network</td>
+    <td>Constraints class in workmanager</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  12. COMMON MISTAKES                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>12. Common Mistakes to Avoid</h2>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Accessing UI / Provider from background task</h4>
+    <pre style="font-size:11px; margin:4px 0">void callbackDispatcher() {
+  Workmanager().executeTask((task, _) async {
+    // ⚠️ CRASH — no BuildContext here
+    final cart = context.read&lt;CartProvider&gt;();
+    return Future.value(true);
+  });
+}</pre>
+    <p>Background tasks run in a separate Isolate. There is no widget tree, no context, no Provider.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Use only non-UI packages</h4>
+    <pre style="font-size:11px; margin:4px 0">void callbackDispatcher() {
+  Workmanager().executeTask((task, _) async {
+    // ✅ http and SharedPreferences work fine
+    final prefs = await SharedPreferences.getInstance();
+    final response = await http.get(...);
+    await prefs.setString('last_sync', ...);
+    return Future.value(true);
+  });
+}</pre>
+    <p>Use packages that don't need Flutter: <code>http</code>, <code>shared_preferences</code>, <code>sqflite</code>.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Registering the task inside build()</h4>
+    <pre style="font-size:11px; margin:4px 0">@override
+Widget build(BuildContext context) {
+  // ⚠️ called on every rebuild!
+  Workmanager().registerPeriodicTask(...);
+  return Scaffold(...);
+}</pre>
+    <p>Every rebuild schedules a new task. The OS ends up with dozens of duplicate tasks.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Register once, use ExistingWorkPolicy.keep</h4>
+    <pre style="font-size:11px; margin:4px 0">// In initState() or after login — runs once
+Workmanager().registerPeriodicTask(
+  'sync-id',
+  'syncProducts',
+  existingWorkPolicy:
+    ExistingWorkPolicy.keep, // ✅ skip if already registered
+);</pre>
+    <p><code>ExistingWorkPolicy.keep</code> is your safety net — it ignores the call if the task is already scheduled.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Expecting exact timing</h4>
+    <pre style="font-size:11px; margin:4px 0">// "Sync every 15 minutes exactly"
+Workmanager().registerPeriodicTask(
+  ...,
+  frequency: Duration(minutes: 15),
+);
+// App syncs at: 10:00, 10:15, 10:30
+// Reality: 10:00, 10:47, 12:03 ← OS delayed</pre>
+    <p>The OS never guarantees exact timing. Battery optimization, Doze mode, and low power mode all cause delays.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Design for approximate timing</h4>
+    <pre style="font-size:11px; margin:4px 0">// Store the last sync timestamp
+await prefs.setString('last_sync',
+  DateTime.now().toIso8601String());
+
+// When app opens, check if data is stale
+final lastSync = prefs.getString('last_sync');
+if (dataIsStale(lastSync)) {
+  await _loadProducts(); // pull fresh data
+}</pre>
+    <p>Check the timestamp when the user opens the app and refresh if the background task ran too long ago.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  13. BACKGROUND SERVICES IN REAL APPS                      -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>13. Background Services in Real Apps — Case Studies</h2>
+
+<table>
+  <tr>
+    <th>App</th>
+    <th>Background Service Used</th>
+    <th>Type</th>
+    <th>Constraints</th>
+  </tr>
+  <tr>
+    <td>Gmail</td>
+    <td>Fetch new emails every few minutes</td>
+    <td>Periodic task</td>
+    <td>Network connected</td>
+  </tr>
+  <tr>
+    <td>Google Photos</td>
+    <td>Upload new photos to the cloud</td>
+    <td>Periodic / one-time</td>
+    <td>WiFi + charging</td>
+  </tr>
+  <tr>
+    <td>Spotify</td>
+    <td>Keep music playing after user switches apps</td>
+    <td>Foreground service</td>
+    <td>None — always allowed while active</td>
+  </tr>
+  <tr>
+    <td>WhatsApp</td>
+    <td>Receive messages &amp; calls when app is closed</td>
+    <td>Foreground service (VoIP) + Push notifications</td>
+    <td>None</td>
+  </tr>
+  <tr>
+    <td>Google Maps (navigation)</td>
+    <td>Continue turn-by-turn while user uses another app</td>
+    <td>Foreground service</td>
+    <td>None — location always available</td>
+  </tr>
+  <tr>
+    <td>iOS Health / Step Counter</td>
+    <td>Continuously count steps from accelerometer</td>
+    <td>Background mode (motion &amp; fitness)</td>
+    <td>None — hardware-powered, very low battery cost</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  14. QUICK REFERENCE                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>14. Quick Reference</h2>
+
+<table>
+  <tr>
+    <th>What You Want to Do</th>
+    <th>API / Approach</th>
+  </tr>
+  <tr>
+    <td>Schedule a repeating background task</td>
+    <td><code>Workmanager().registerPeriodicTask(id, name, frequency:, constraints:)</code></td>
+  </tr>
+  <tr>
+    <td>Run a task once, soon</td>
+    <td><code>Workmanager().registerOneOffTask(id, name, constraints:)</code></td>
+  </tr>
+  <tr>
+    <td>Handle all background tasks in one place</td>
+    <td>Top-level <code>callbackDispatcher()</code> with <code>@pragma('vm:entry-point')</code></td>
+  </tr>
+  <tr>
+    <td>Prevent duplicate task registrations</td>
+    <td><code>existingWorkPolicy: ExistingWorkPolicy.keep</code></td>
+  </tr>
+  <tr>
+    <td>Cancel a specific task</td>
+    <td><code>Workmanager().cancelByUniqueName(id)</code></td>
+  </tr>
+  <tr>
+    <td>Cancel all tasks</td>
+    <td><code>Workmanager().cancelAll()</code></td>
+  </tr>
+  <tr>
+    <td>Long-running user-visible work (music, navigation)</td>
+    <td>Foreground Service — requires a persistent notification</td>
+  </tr>
+  <tr>
+    <td>Initialise Workmanager on app start</td>
+    <td><code>Workmanager().initialize(callbackDispatcher)</code> before <code>runApp()</code></td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  PRACTICE TASK                                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>Practice Task</h2>
+<ol>
+  <li>Add <code>workmanager: ^0.5.2</code> to <code>pubspec.yaml</code> and run
+      <code>flutter pub get</code>.</li>
+  <li>Write the <code>callbackDispatcher</code> top-level function in <code>main.dart</code>
+      that handles a task named <code>'syncProducts'</code>.</li>
+  <li>In <code>_runProductSync()</code>, call <code>ProductService.getProducts()</code>
+      and save the count and timestamp to <code>SharedPreferences</code>.</li>
+  <li>After the user successfully logs in (in <code>login_screen.dart</code>), call
+      <code>Workmanager().registerPeriodicTask()</code> with <code>networkType: connected</code>
+      and <code>requiresBatteryNotLow: true</code>.</li>
+  <li>On the Profile screen, display the <code>last_sync_time</code> value from
+      <code>SharedPreferences</code> so the user can see when the last sync happened.</li>
+  <li>When the user logs out (in <code>profile.dart</code>), call
+      <code>Workmanager().cancelAll()</code> to stop syncing.</li>
+  <li><strong>Challenge:</strong> Think about three apps on your phone that almost
+      certainly use Foreground Services. For each one, describe the notification you see
+      when that service is running, and explain what would break if the OS killed the
+      service unexpectedly.</li>
+  <li><strong>Challenge:</strong> Research the Android <em>Doze mode</em>. Under what
+      conditions does the phone enter Doze mode? What happens to background tasks when
+      it does? How does a <code>HIGH_PRIORITY</code> FCM message bypass Doze?</li>
+</ol>
+
+<div class="success">
+  <strong>Key Takeaway:</strong> Background services let your app do useful work even
+  when the user isn't looking — but the OS is firmly in control of when that work
+  actually runs. Use <strong>Periodic Tasks</strong> for scheduled data sync,
+  <strong>One-Time Tasks</strong> for deferred work triggered by the user,
+  and <strong>Foreground Services</strong> for ongoing user-visible operations.
+  Always use constraints to be a good battery citizen, always design for approximate
+  timing (never exact), and remember that background code runs in a fresh Isolate —
+  no UI, no Provider, no BuildContext.
+</div>
+
+</body>
+</html>
