@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 19 – Local Database with SQLite</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px; color: #1a1a1a; background: #fff;
+      padding: 40px; max-width: 860px; margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800; color: white;
+      padding: 28px 32px; border-radius: 8px; margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p  { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+    .fn  { color: #f9e2af; }
+
+    .tip    { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+    .warn   { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+    .success{ background: #e8f5e9; border-left: 4px solid #388e3c; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .success strong { color: #2e7d32; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2.2; margin: 12px 0; text-align: center; color: #444; }
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 12px 0; }
+    .box { background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; padding: 14px; font-size: 13px; }
+    .box h4 { margin-bottom: 8px; color: #444; }
+    .bad  { border-top: 3px solid #e53935; }
+    .good { border-top: 3px solid #43a047; }
+
+    @media print {
+      body { padding: 20px; }
+      pre  { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  HEADER                                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <div class="course">BS — MOBILE APPLICATION DEVELOPMENT · FLUTTER</div>
+  <h1>Lecture 19 — Local Database with SQLite</h1>
+  <div class="meta">Topics: SQLite · sqflite · DatabaseHelper · CRUD · Singleton · Persisting Cart Data</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  OBJECTIVES                                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ul>
+    <li>Understand why a local database is better than SharedPreferences for structured data</li>
+    <li>Understand the structure of a SQLite database: tables, rows, and columns</li>
+    <li>Open and create a database using the <code>sqflite</code> package</li>
+    <li>Perform all four CRUD operations: Create, Read, Update, Delete</li>
+    <li>Build a <code>CartDatabase</code> service class using the Singleton pattern</li>
+    <li>Connect <code>CartDatabase</code> to <code>CartProvider</code> so the cart persists across app restarts</li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  1. THE PROBLEM                                            -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>1. The Problem — Cart Disappears on Restart</h2>
+
+<p>Right now, the cart lives only in memory — inside <code>CartProvider._items</code>.
+The moment the user closes the app (or the OS kills it), that list is gone.
+Next time they open the app, the cart is empty.</p>
+
+<p>We already know how to persist simple values using <code>SharedPreferences</code>
+(Lecture 7). But SharedPreferences is a <strong>key-value store</strong> — it can save
+a single string or number against a name. It cannot save a <em>list of structured
+objects</em> cleanly.</p>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>SharedPreferences — not designed for lists</h4>
+    <p>You would have to manually convert every cart item to a string,
+    store each one separately, then parse them all back on startup.
+    It becomes messy very quickly and breaks when the data has more than 2-3 fields.</p>
+  </div>
+  <div class="box good">
+    <h4>SQLite — designed exactly for this</h4>
+    <p>Store each cart item as a row in a table. To load all items: one query.
+    To save one item: one insert. To delete one: one delete.
+    Structured, fast, and scales to thousands of records.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  2. WHAT IS SQLITE?                                        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>2. What Is SQLite?</h2>
+
+<p><strong>SQLite</strong> is a lightweight relational database that stores data in a
+single <em>file</em> on the device. It is not a server — there is no connection,
+no username, no password. It is just a file that your app reads and writes directly.</p>
+
+<p>It is used by billions of apps worldwide — WhatsApp stores your messages in SQLite.
+Android's contacts app uses SQLite. iOS uses SQLite under Core Data.
+It is the most widely deployed database engine in the world.</p>
+
+<table>
+  <tr>
+    <th>Feature</th>
+    <th>SharedPreferences</th>
+    <th>SQLite</th>
+  </tr>
+  <tr>
+    <td>Best for</td>
+    <td>Simple settings: one value per key</td>
+    <td>Structured data: lists of objects with multiple fields</td>
+  </tr>
+  <tr>
+    <td>Data shape</td>
+    <td>Key → Value</td>
+    <td>Table → Rows → Columns</td>
+  </tr>
+  <tr>
+    <td>Querying</td>
+    <td>No — just get by key</td>
+    <td>Yes — filter, sort, search</td>
+  </tr>
+  <tr>
+    <td>Example use</td>
+    <td>Auth token, dark mode, last username</td>
+    <td>Cart items, messages, downloaded products, notes</td>
+  </tr>
+  <tr>
+    <td>Flutter package</td>
+    <td><code>shared_preferences</code></td>
+    <td><code>sqflite</code></td>
+  </tr>
+</table>
+
+<div class="tip">
+  <strong>Connecting to what you know:</strong> SQLite uses the same SQL you learned in
+  your databases course — <code>CREATE TABLE</code>, <code>INSERT</code>,
+  <code>SELECT</code>, <code>UPDATE</code>, <code>DELETE</code>. The only difference
+  is that instead of running queries on a server, you run them on a file on the phone.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  3. THE PLAN                                               -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>3. The Plan — What We Are Building</h2>
+
+<p>We will add persistence to the cart in three steps:</p>
+
+<div class="diagram">
+  <strong>Before Lecture 19</strong><br><br>
+  User adds item → CartProvider._items (RAM) → UI updates ✅<br>
+  User restarts app → CartProvider._items = [] → cart is empty ❌<br><br>
+  <strong>After Lecture 19</strong><br><br>
+  User adds item → CartProvider._items (RAM) → UI updates ✅<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓ also writes to<br>
+  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CartDatabase (SQLite file) → saved to disk ✅<br>
+  User restarts app → CartProvider reads from CartDatabase → cart restored ✅
+</div>
+
+<table>
+  <tr>
+    <th>Step</th>
+    <th>File</th>
+    <th>What Changes</th>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td><code>pubspec.yaml</code></td>
+    <td>Add <code>sqflite</code> and <code>path</code> packages</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td><code>lib/services/cart_database.dart</code></td>
+    <td>New file — opens the database, defines the table, handles all queries</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td><code>lib/providers/cart_provider.dart</code></td>
+    <td>Load from DB on startup; write to DB on every change</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  4. STEP 1 — ADD PACKAGES                                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>4. Step 1 — Add the Packages</h2>
+
+<span class="filepath">pubspec.yaml</span>
+<pre>
+dependencies:
+  flutter:
+    sdk: flutter
+  shared_preferences: ^<span class="num">2.3.0</span>
+  http: ^<span class="num">1.2.0</span>
+  provider: ^<span class="num">6.1.2</span>
+  sqflite: ^<span class="num">2.3.0</span>   <span class="cm"># SQLite database for Flutter — NEW</span>
+  path: ^<span class="num">1.9.0</span>     <span class="cm"># Helps build file paths (used to find the DB file) — NEW</span>
+</pre>
+
+<p>Then run <code>flutter pub get</code> in the terminal to download them.</p>
+
+<div class="tip">
+  <strong>Why do we need the <code>path</code> package?</strong>
+  The database is stored as a file on the device. The <code>path</code> package
+  provides a <code>join()</code> function that correctly builds file paths on both
+  Android (<code>/data/data/app/databases/cart.db</code>) and
+  iOS (<code>/Documents/cart.db</code>) without you hardcoding the separator character.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  5. STEP 2 — THE TABLE DESIGN                              -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>5. Step 2 — Designing the Table</h2>
+
+<p>Before writing any code, we decide what our table looks like. A cart item needs:</p>
+
+<table>
+  <tr>
+    <th>Column</th>
+    <th>Type</th>
+    <th>Notes</th>
+  </tr>
+  <tr>
+    <td><code>product_id</code></td>
+    <td>INTEGER</td>
+    <td>Primary Key — uniquely identifies the product; prevents duplicates</td>
+  </tr>
+  <tr>
+    <td><code>title</code></td>
+    <td>TEXT</td>
+    <td>Product name — needed for display in the cart</td>
+  </tr>
+  <tr>
+    <td><code>price</code></td>
+    <td>REAL</td>
+    <td>Product price — needed for total calculation</td>
+  </tr>
+  <tr>
+    <td><code>thumbnail</code></td>
+    <td>TEXT</td>
+    <td>Image URL — needed for the product image in the cart</td>
+  </tr>
+  <tr>
+    <td><code>quantity</code></td>
+    <td>INTEGER</td>
+    <td>How many the user has added — this changes when +/- is tapped</td>
+  </tr>
+</table>
+
+<p>In SQL, the <code>CREATE TABLE</code> statement looks like this:</p>
+
+<pre>
+<span class="cl">CREATE TABLE</span> cart_items (
+  product_id  <span class="kw">INTEGER PRIMARY KEY</span>,
+  title       <span class="kw">TEXT    NOT NULL</span>,
+  price       <span class="kw">REAL    NOT NULL</span>,
+  thumbnail   <span class="kw">TEXT    NOT NULL</span>,
+  quantity    <span class="kw">INTEGER NOT NULL DEFAULT</span> <span class="num">1</span>
+)
+</pre>
+
+<div class="tip">
+  <strong>PRIMARY KEY</strong> means this column uniquely identifies each row.
+  Because <code>product_id</code> is the PRIMARY KEY, the same product can never
+  appear twice — the database enforces this automatically, which is exactly what we want.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  6. STEP 3 — CartDatabase SERVICE CLASS                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>6. Step 3 — Create CartDatabase</h2>
+
+<p>We follow the same pattern as the rest of the app: <strong>keep data logic separate
+from UI logic</strong>. Just like <code>ProductService</code> handles all API calls,
+<code>CartDatabase</code> handles all database calls. The provider just calls its methods.</p>
+
+<h3>6a — The Singleton Pattern</h3>
+
+<p>A database connection should be opened <strong>once</strong> and reused everywhere.
+Opening a new connection for every query wastes resources. We use the
+<strong>Singleton pattern</strong> — a design pattern that guarantees a class only
+ever has one instance.</p>
+
+<span class="filepath">lib/services/cart_database.dart — skeleton</span>
+<pre>
+<span class="kw">class</span> <span class="cl">CartDatabase</span> {
+
+  <span class="cm">// The one and only instance — created once, never again</span>
+  <span class="kw">static final</span> <span class="cl">CartDatabase</span> instance = <span class="cl">CartDatabase</span>._internal();
+
+  <span class="cm">// Private constructor — no one outside this class can call "CartDatabase()"</span>
+  <span class="cl">CartDatabase</span>._internal();
+
+  <span class="cm">// The actual database — null until first use</span>
+  <span class="cl">Database</span>? _db;
+
+  <span class="cm">// Getter that opens the database the first time it is needed,
+  // then returns the same open database every time after that.</span>
+  <span class="cl">Future</span>&lt;<span class="cl">Database</span>&gt; <span class="kw">get</span> database <span class="kw">async</span> {
+    <span class="kw">if</span> (_db != <span class="kw">null</span>) <span class="kw">return</span> _db!; <span class="cm">// already open</span>
+    _db = <span class="kw">await</span> <span class="fn">_openDatabase</span>();  <span class="cm">// first time — open it</span>
+    <span class="kw">return</span> _db!;
+  }
+}
+</pre>
+
+<div class="tip">
+  <strong>How to use a Singleton:</strong> Instead of <code>CartDatabase()</code>
+  (which is blocked by the private constructor), you write
+  <code>CartDatabase.instance</code>. This always gives you the same object.
+</div>
+
+<h3>6b — Opening the Database</h3>
+
+<span class="filepath">lib/services/cart_database.dart — _openDatabase()</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:sqflite/sqflite.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:path/path.dart'</span>;
+
+<span class="cl">Future</span>&lt;<span class="cl">Database</span>&gt; <span class="fn">_openDatabase</span>() <span class="kw">async</span> {
+
+  <span class="cm">// Step 1: Find where the OS keeps databases on this device</span>
+  <span class="kw">final</span> dbPath = <span class="kw">await</span> <span class="fn">getDatabasesPath</span>();
+
+  <span class="cm">// Step 2: Build the full path to our file: ".../databases/cart.db"</span>
+  <span class="kw">final</span> path = <span class="fn">join</span>(dbPath, <span class="st">'cart.db'</span>);
+
+  <span class="cm">// Step 3: Open (or create) the database file</span>
+  <span class="kw">return</span> <span class="fn">openDatabase</span>(
+    path,
+    version: <span class="num">1</span>,
+
+    <span class="cm">// onCreate only runs the very first time — when the file does not exist yet.
+    // It creates the table. It never runs again on the same device.</span>
+    onCreate: (db, version) <span class="kw">async</span> {
+      <span class="kw">await</span> db.<span class="fn">execute</span>(<span class="st">'''
+        CREATE TABLE cart_items (
+          product_id  INTEGER PRIMARY KEY,
+          title       TEXT    NOT NULL,
+          price       REAL    NOT NULL,
+          thumbnail   TEXT    NOT NULL,
+          quantity    INTEGER NOT NULL DEFAULT 1
+        )
+      '''</span>);
+    },
+  );
+}
+</pre>
+
+<h3>6c — The Four CRUD Methods</h3>
+
+<p>CRUD stands for <strong>C</strong>reate, <strong>R</strong>ead,
+<strong>U</strong>pdate, <strong>D</strong>elete — the four operations every
+database needs. Here is each one:</p>
+
+<span class="filepath">lib/services/cart_database.dart — CRUD methods</span>
+<pre>
+<span class="cm">// CREATE / UPDATE — insert a row, or replace it if product_id already exists</span>
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">insertOrUpdate</span>(<span class="cl">CartItem</span> item) <span class="kw">async</span> {
+  <span class="kw">final</span> db = <span class="kw">await</span> database;
+  <span class="kw">await</span> db.<span class="fn">insert</span>(
+    <span class="st">'cart_items'</span>,
+    {
+      <span class="st">'product_id'</span>: item.product.id,
+      <span class="st">'title'</span>:      item.product.title,
+      <span class="st">'price'</span>:      item.product.price,
+      <span class="st">'thumbnail'</span>:  item.product.thumbnail,
+      <span class="st">'quantity'</span>:   item.quantity,
+    },
+    <span class="cm">// If a row with this product_id already exists, REPLACE it entirely.
+    // This handles both insert (new product) and update (quantity changed).</span>
+    conflictAlgorithm: <span class="cl">ConflictAlgorithm</span>.replace,
+  );
+}
+
+<span class="cm">// READ — load all rows from the table</span>
+<span class="cl">Future</span>&lt;<span class="cl">List</span>&lt;<span class="cl">CartItem</span>&gt;&gt; <span class="fn">getAllItems</span>() <span class="kw">async</span> {
+  <span class="kw">final</span> db   = <span class="kw">await</span> database;
+  <span class="kw">final</span> rows = <span class="kw">await</span> db.<span class="fn">query</span>(<span class="st">'cart_items'</span>); <span class="cm">// SELECT * FROM cart_items</span>
+
+  <span class="cm">// Convert each raw Map (column → value) into a CartItem object</span>
+  <span class="kw">return</span> rows.<span class="fn">map</span>((row) {
+    <span class="kw">final</span> product = <span class="cl">Product</span>(
+      id:          row[<span class="st">'product_id'</span>] <span class="kw">as int</span>,
+      title:       row[<span class="st">'title'</span>]      <span class="kw">as</span> <span class="cl">String</span>,
+      price:       row[<span class="st">'price'</span>]      <span class="kw">as double</span>,
+      thumbnail:   row[<span class="st">'thumbnail'</span>]  <span class="kw">as</span> <span class="cl">String</span>,
+      description: <span class="st">''</span>, <span class="cm">// not stored — not needed in cart</span>
+      category:    <span class="st">''</span>,
+      rating:      <span class="num">0.0</span>,
+    );
+    <span class="kw">return</span> <span class="cl">CartItem</span>(product: product, quantity: row[<span class="st">'quantity'</span>] <span class="kw">as int</span>);
+  }).<span class="fn">toList</span>();
+}
+
+<span class="cm">// DELETE ONE — remove a single product by its id</span>
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">deleteItem</span>(<span class="kw">int</span> productId) <span class="kw">async</span> {
+  <span class="kw">final</span> db = <span class="kw">await</span> database;
+  <span class="kw">await</span> db.<span class="fn">delete</span>(
+    <span class="st">'cart_items'</span>,
+    where:     <span class="st">'product_id = ?'</span>, <span class="cm">// the ? is a placeholder — prevents SQL injection</span>
+    whereArgs: [productId],
+  );
+}
+
+<span class="cm">// DELETE ALL — wipe the entire table (checkout or logout)</span>
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">clearAll</span>() <span class="kw">async</span> {
+  <span class="kw">final</span> db = <span class="kw">await</span> database;
+  <span class="kw">await</span> db.<span class="fn">delete</span>(<span class="st">'cart_items'</span>); <span class="cm">// DELETE FROM cart_items</span>
+}
+</pre>
+
+<div class="warn">
+  <strong>Always use the <code>?</code> placeholder — never string concatenation.</strong>
+  Writing <code>where: 'product_id = $productId'</code> is dangerous — a malicious value
+  could break your query (SQL Injection). Writing <code>where: 'product_id = ?'</code>
+  with <code>whereArgs: [productId]</code> is always safe.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  7. STEP 4 — UPDATE CartProvider                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>7. Step 4 — Connect CartProvider to CartDatabase</h2>
+
+<p>CartProvider is already correct for managing in-memory state. We add two things:</p>
+<ol>
+  <li>A <code>_loadFromDatabase()</code> call in the constructor — restores the cart on startup</li>
+  <li>A database write after every state change — keeps the DB in sync</li>
+</ol>
+
+<span class="filepath">lib/providers/cart_provider.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/services/cart_database.dart'</span>; <span class="cm">// NEW</span>
+
+<span class="kw">class</span> <span class="cl">CartProvider</span> <span class="kw">extends</span> <span class="cl">ChangeNotifier</span> {
+
+  <span class="kw">final</span> <span class="cl">List</span>&lt;<span class="cl">CartItem</span>&gt; _items = [];
+  <span class="kw">final</span> <span class="cl">CartDatabase</span> _db = <span class="cl">CartDatabase</span>.instance; <span class="cm">// NEW</span>
+
+  <span class="cm">// Constructor — load saved cart as soon as the provider is created</span>
+  <span class="cl">CartProvider</span>() {
+    _loadFromDatabase(); <span class="cm">// same pattern as ThemeProvider (Lecture 14)</span>
+  }
+
+  <span class="cm">// Reads all rows from SQLite and puts them in _items</span>
+  <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">_loadFromDatabase</span>() <span class="kw">async</span> {
+    <span class="kw">final</span> savedItems = <span class="kw">await</span> _db.<span class="fn">getAllItems</span>();
+    <span class="kw">if</span> (savedItems.isNotEmpty) {
+      _items.<span class="fn">addAll</span>(savedItems);
+      <span class="fn">notifyListeners</span>(); <span class="cm">// rebuild UI with restored cart</span>
+    }
+  }
+
+  <span class="cm">// ── Add ──────────────────────────────────────────────────────</span>
+  <span class="kw">void</span> <span class="fn">addProduct</span>(<span class="cl">Product</span> product) {
+    <span class="kw">final</span> index = _items.<span class="fn">indexWhere</span>((i) =&gt; i.product.id == product.id);
+
+    <span class="kw">if</span> (index &gt;= <span class="num">0</span>) {
+      _items[index].quantity++;
+    } <span class="kw">else</span> {
+      _items.<span class="fn">add</span>(<span class="cl">CartItem</span>(product: product));
+    }
+
+    <span class="fn">notifyListeners</span>(); <span class="cm">// UI updates immediately</span>
+
+    <span class="cm">// Write the updated item to SQLite (no await — fire and forget)</span>
+    <span class="kw">final</span> updated = _items.<span class="fn">firstWhere</span>((i) =&gt; i.product.id == product.id);
+    _db.<span class="fn">insertOrUpdate</span>(updated);
+  }
+
+  <span class="cm">// ── Remove ───────────────────────────────────────────────────</span>
+  <span class="kw">void</span> <span class="fn">removeProduct</span>(<span class="kw">int</span> productId) {
+    _items.<span class="fn">removeWhere</span>((i) =&gt; i.product.id == productId);
+    <span class="fn">notifyListeners</span>();
+    _db.<span class="fn">deleteItem</span>(productId); <span class="cm">// delete from SQLite too</span>
+  }
+
+  <span class="cm">// ── Decrease ─────────────────────────────────────────────────</span>
+  <span class="kw">void</span> <span class="fn">decreaseQuantity</span>(<span class="kw">int</span> productId) {
+    <span class="kw">final</span> index = _items.<span class="fn">indexWhere</span>((i) =&gt; i.product.id == productId);
+    <span class="kw">if</span> (index &lt; <span class="num">0</span>) <span class="kw">return</span>;
+
+    <span class="kw">if</span> (_items[index].quantity &gt; <span class="num">1</span>) {
+      _items[index].quantity--;
+      <span class="fn">notifyListeners</span>();
+      _db.<span class="fn">insertOrUpdate</span>(_items[index]); <span class="cm">// update quantity in SQLite</span>
+    } <span class="kw">else</span> {
+      _items.<span class="fn">removeAt</span>(index);
+      <span class="fn">notifyListeners</span>();
+      _db.<span class="fn">deleteItem</span>(productId); <span class="cm">// quantity is 0 — remove from SQLite</span>
+    }
+  }
+
+  <span class="cm">// ── Clear ────────────────────────────────────────────────────</span>
+  <span class="kw">void</span> <span class="fn">clearCart</span>() {
+    _items.<span class="fn">clear</span>();
+    <span class="fn">notifyListeners</span>();
+    _db.<span class="fn">clearAll</span>(); <span class="cm">// wipe the entire table</span>
+  }
+}
+</pre>
+
+<div class="tip">
+  <strong>Notice the pattern:</strong> every method does the same two things in order —
+  (1) update <code>_items</code> and call <code>notifyListeners()</code> so the UI
+  responds <em>instantly</em>, then (2) call the database method without <code>await</code>
+  so it saves in the background without making the user wait. The UI never freezes.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  8. HOW IT ALL FITS TOGETHER                               -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>8. How It All Fits Together</h2>
+
+<div class="diagram">
+  <strong>App Starts</strong><br>
+  main.dart creates CartProvider → CartProvider() constructor runs<br>
+  → _loadFromDatabase() → CartDatabase.getAllItems()<br>
+  → SELECT * FROM cart_items → returns saved rows<br>
+  → _items.addAll(savedItems) → notifyListeners()<br>
+  → CartScreen rebuilds with the restored cart ✅<br><br>
+
+  <strong>User taps "Add to Cart" on a product</strong><br>
+  ProductDetailScreen → context.read&lt;CartProvider&gt;().addProduct(product)<br>
+  → _items updated → notifyListeners() → UI shows new item ✅<br>
+  → CartDatabase.insertOrUpdate(item) → INSERT OR REPLACE INTO cart_items ✅<br><br>
+
+  <strong>User taps Delete on a cart item</strong><br>
+  CartScreen → context.read&lt;CartProvider&gt;().removeProduct(id)<br>
+  → _items updated → notifyListeners() → item disappears from UI ✅<br>
+  → CartDatabase.deleteItem(id) → DELETE FROM cart_items WHERE product_id = ? ✅<br><br>
+
+  <strong>User restarts the app</strong><br>
+  CartProvider constructor → _loadFromDatabase() → all items restored ✅
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  9. THE LAYERED ARCHITECTURE                               -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>9. The Layered Architecture — Who Does What</h2>
+
+<p>This lecture is a good example of the three-layer architecture from Lecture 16:</p>
+
+<table>
+  <tr>
+    <th>Layer</th>
+    <th>Class</th>
+    <th>Responsibility</th>
+  </tr>
+  <tr>
+    <td>Presentation (UI)</td>
+    <td><code>CartScreen</code></td>
+    <td>Displays cart items; calls provider methods on button taps</td>
+  </tr>
+  <tr>
+    <td>Business Logic</td>
+    <td><code>CartProvider</code></td>
+    <td>Manages the in-memory list; decides add/remove/increase/decrease rules</td>
+  </tr>
+  <tr>
+    <td>Data</td>
+    <td><code>CartDatabase</code></td>
+    <td>Talks to SQLite; performs all CRUD operations; no UI knowledge</td>
+  </tr>
+</table>
+
+<p><code>CartScreen</code> never imports <code>CartDatabase</code>.
+<code>CartDatabase</code> never imports anything from Flutter UI.
+Each layer only talks to the layer directly below it.</p>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  10. COMMON MISTAKES                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>10. Common Mistakes to Avoid</h2>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Opening the database in every method</h4>
+    <pre style="font-size:11px; margin:4px 0">Future&lt;void&gt; insertItem(CartItem item) async {
+  // Opens a brand new connection every call!
+  final db = await openDatabase('cart.db', ...);
+  await db.insert(...);
+}</pre>
+    <p>Opening a connection is slow. Doing it on every call wastes time and can cause corruption.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Open once with the lazy getter</h4>
+    <pre style="font-size:11px; margin:4px 0">Future&lt;void&gt; insertItem(CartItem item) async {
+  // Uses the cached connection
+  final db = await database; // getter
+  await db.insert(...);
+}</pre>
+    <p>The <code>database</code> getter opens the connection only on the first call, then reuses it every time.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Awaiting the DB write before notifyListeners</h4>
+    <pre style="font-size:11px; margin:4px 0">void addProduct(Product p) async {
+  _items.add(CartItem(product: p));
+  await _db.insertOrUpdate(...); // waits...
+  notifyListeners(); // UI only updates after DB write
+}</pre>
+    <p>The user taps Add to Cart and nothing happens for a brief moment while the DB write completes. Bad UX.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ notifyListeners first, DB write after</h4>
+    <pre style="font-size:11px; margin:4px 0">void addProduct(Product p) {
+  _items.add(CartItem(product: p));
+  notifyListeners();       // UI updates instantly ✅
+  _db.insertOrUpdate(...); // no await — runs after
+}</pre>
+    <p>UI updates immediately. The database write happens in the background. The user sees instant feedback.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Using string concatenation in WHERE</h4>
+    <pre style="font-size:11px; margin:4px 0">await db.delete(
+  'cart_items',
+  where: 'product_id = $productId', // ⚠️
+);</pre>
+    <p>SQL Injection risk — a crafted value could corrupt or expose your database.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Always use ? placeholders</h4>
+    <pre style="font-size:11px; margin:4px 0">await db.delete(
+  'cart_items',
+  where: 'product_id = ?',   // ✅
+  whereArgs: [productId],
+);</pre>
+    <p>sqflite escapes the value safely before running the query.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  11. QUICK REFERENCE                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>11. Quick Reference — sqflite Cheat Sheet</h2>
+
+<table>
+  <tr>
+    <th>What You Want to Do</th>
+    <th>sqflite Code</th>
+  </tr>
+  <tr>
+    <td>Get the databases folder path</td>
+    <td><code>await getDatabasesPath()</code></td>
+  </tr>
+  <tr>
+    <td>Build a file path safely</td>
+    <td><code>join(dbPath, 'myfile.db')</code></td>
+  </tr>
+  <tr>
+    <td>Open (or create) a database</td>
+    <td><code>await openDatabase(path, version: 1, onCreate: ...)</code></td>
+  </tr>
+  <tr>
+    <td>Run a raw SQL statement</td>
+    <td><code>await db.execute('CREATE TABLE ...')</code></td>
+  </tr>
+  <tr>
+    <td>Insert a row</td>
+    <td><code>await db.insert('table', {'col': value, ...})</code></td>
+  </tr>
+  <tr>
+    <td>Insert or replace (upsert)</td>
+    <td><code>await db.insert('table', map, conflictAlgorithm: ConflictAlgorithm.replace)</code></td>
+  </tr>
+  <tr>
+    <td>Read all rows</td>
+    <td><code>await db.query('table')</code></td>
+  </tr>
+  <tr>
+    <td>Read rows with a condition</td>
+    <td><code>await db.query('table', where: 'col = ?', whereArgs: [value])</code></td>
+  </tr>
+  <tr>
+    <td>Delete one row</td>
+    <td><code>await db.delete('table', where: 'col = ?', whereArgs: [value])</code></td>
+  </tr>
+  <tr>
+    <td>Delete all rows</td>
+    <td><code>await db.delete('table')</code></td>
+  </tr>
+  <tr>
+    <td>Get the singleton instance</td>
+    <td><code>CartDatabase.instance</code></td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  12. SUMMARY OF CHANGES                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>12. Summary of Changes Made This Lecture</h2>
+
+<table>
+  <tr>
+    <th>File</th>
+    <th>What Changed</th>
+    <th>Why</th>
+  </tr>
+  <tr>
+    <td><code>pubspec.yaml</code></td>
+    <td>Added <code>sqflite</code> and <code>path</code></td>
+    <td>These packages provide SQLite access and file path utilities</td>
+  </tr>
+  <tr>
+    <td><code>cart_database.dart</code></td>
+    <td>New file — Singleton, opens DB, defines table, all CRUD methods</td>
+    <td>Separates all database logic from the provider and UI</td>
+  </tr>
+  <tr>
+    <td><code>cart_provider.dart</code></td>
+    <td>Added <code>_db</code>, <code>_loadFromDatabase()</code> in constructor, DB writes in every mutating method</td>
+    <td>Cart now survives app restarts</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  PRACTICE TASK                                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>Practice Task</h2>
+<ol>
+  <li>Run the app, add 3 products to the cart, then <strong>hot-restart</strong> the app
+      (press <kbd>R</kbd> in the terminal). The cart should still have all 3 items.</li>
+  <li>Tap the quantity <strong>+</strong> button on one item, then hot-restart again.
+      The updated quantity should be preserved.</li>
+  <li>Tap <strong>Delete</strong> on one item, then hot-restart.
+      The deleted item should not come back.</li>
+  <li>Tap <strong>Checkout</strong> to clear the cart, then hot-restart.
+      The cart should be empty.</li>
+  <li>Open <code>cart_database.dart</code> and add a <code>print()</code> statement
+      inside <code>_openDatabase()</code> saying <em>"Database opened"</em>.
+      Hot-restart and check the console — it should only print once, proving the
+      Singleton is working.</li>
+  <li><strong>Challenge:</strong> Add a <code>getTotalSaved()</code> method to
+      <code>CartDatabase</code> that returns the count of rows in the table using
+      <code>db.rawQuery('SELECT COUNT(*) FROM cart_items')</code>.
+      Display this count on the Profile screen as "Items saved in cart: X".</li>
+  <li><strong>Challenge:</strong> Currently we don't store <code>description</code>,
+      <code>category</code>, or <code>rating</code> in the DB because the cart doesn't
+      need them. What would you need to change if you wanted the cart to also show
+      the product category? Modify the table schema and the CRUD methods to support it.</li>
+</ol>
+
+<div class="success">
+  <strong>Key Takeaway:</strong> SQLite is the right tool whenever you need to store
+  a <em>list</em> of objects that must survive app restarts.
+  The pattern is always the same: a <strong>Singleton service class</strong> opens the
+  database once and exposes clean CRUD methods; the <strong>Provider</strong> calls
+  those methods after every state change and loads from them on startup; the
+  <strong>UI</strong> never touches the database directly.
+  This separation — UI talks to Provider, Provider talks to Database — is the
+  architecture that keeps large apps maintainable.
+</div>
+
+</body>
+</html>

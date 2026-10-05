@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_application_2/providers/auth_provider.dart';
 import 'package:flutter_application_2/screens/home.dart';
-import 'package:flutter_application_2/screens/login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -31,15 +30,12 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    final isLoggedIn = context.read<AuthProvider>().isLoggedIn;
-
+    // Login disabled — always go directly to home.
+    // To re-enable: replace `const MyApp()` with the original ternary:
+    //   isLoggedIn ? const MyApp() : const LoginScreen()
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) => isLoggedIn
-            ? const MyApp()       // token found → go straight to home
-            : const LoginScreen(), // no token → ask user to log in
-      ),
+      MaterialPageRoute(builder: (_) => const MyApp()),
     );
   }
 
