@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lecture 20 – Notification Services</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      font-size: 14px; color: #1a1a1a; background: #fff;
+      padding: 40px; max-width: 860px; margin: 0 auto;
+    }
+    .page-header {
+      background: #FF9800; color: white;
+      padding: 28px 32px; border-radius: 8px; margin-bottom: 32px;
+    }
+    .page-header .course { font-size: 12px; letter-spacing: 1px; opacity: 0.9; margin-bottom: 6px; }
+    .page-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 4px; }
+    .page-header .meta { font-size: 12px; opacity: 0.85; }
+
+    h2 { font-size: 18px; color: #e65100; border-left: 4px solid #FF9800; padding-left: 10px; margin: 28px 0 12px; }
+    h3 { font-size: 15px; color: #333; margin: 18px 0 8px; font-weight: 600; }
+    p  { line-height: 1.7; margin-bottom: 10px; }
+    ul, ol { padding-left: 22px; margin-bottom: 10px; }
+    li { line-height: 1.8; }
+
+    .objectives { background: #fff8e1; border: 1px solid #FF9800; border-radius: 6px; padding: 16px 20px; margin-bottom: 24px; }
+    .objectives h3 { color: #e65100; margin-top: 0; }
+
+    pre {
+      background: #1e1e2e; color: #cdd6f4; border-radius: 6px;
+      padding: 16px 20px; overflow-x: auto; margin: 12px 0 18px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px; line-height: 1.65;
+    }
+    .kw  { color: #cba6f7; }
+    .cl  { color: #89b4fa; }
+    .st  { color: #a6e3a1; }
+    .cm  { color: #6c7086; font-style: italic; }
+    .num { color: #fab387; }
+    .fn  { color: #f9e2af; }
+
+    .tip    { background: #e3f2fd; border-left: 4px solid #1976D2; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .tip strong { color: #1976D2; }
+    .warn   { background: #fff3e0; border-left: 4px solid #f57c00; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .warn strong { color: #e65100; }
+    .success{ background: #e8f5e9; border-left: 4px solid #388e3c; padding: 10px 14px; border-radius: 0 6px 6px 0; margin: 12px 0; font-size: 13px; }
+    .success strong { color: #2e7d32; }
+
+    .diagram { background: #f9f9f9; border: 1px dashed #ccc; border-radius: 6px; padding: 16px; font-family: monospace; font-size: 13px; line-height: 2.2; margin: 12px 0; text-align: center; color: #444; }
+    .filepath { display: inline-block; background: #333; color: #fff; font-family: monospace; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 12px 0 20px; font-size: 13px; }
+    th { background: #FF9800; color: white; padding: 8px 12px; text-align: left; }
+    td { padding: 8px 12px; border-bottom: 1px solid #eee; }
+    tr:nth-child(even) td { background: #fafafa; }
+
+    .two-col   { display: grid; grid-template-columns: 1fr 1fr;    gap: 16px; margin: 12px 0; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin: 12px 0; }
+    .box { background: #f9f9f9; border: 1px solid #ddd; border-radius: 6px; padding: 14px; font-size: 13px; }
+    .box h4 { margin-bottom: 8px; color: #444; font-size: 13px; }
+    .bad  { border-top: 3px solid #e53935; }
+    .good { border-top: 3px solid #43a047; }
+    .local-box { border-top: 4px solid #42a5f5; }
+    .push-box  { border-top: 4px solid #ab47bc; }
+
+    /* Notification mockup */
+    .notif-mockup {
+      background: #fff; border: 1px solid #ddd; border-radius: 12px;
+      padding: 12px 16px; margin: 12px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      display: flex; align-items: flex-start; gap: 12px; max-width: 380px;
+    }
+    .notif-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      background: #FF9800; display: flex; align-items: center;
+      justify-content: center; color: white; font-size: 18px; flex-shrink: 0;
+    }
+    .notif-body .notif-title { font-weight: 600; font-size: 13px; }
+    .notif-body .notif-text  { font-size: 12px; color: #555; margin-top: 2px; }
+    .notif-body .notif-time  { font-size: 11px; color: #aaa; margin-top: 4px; }
+
+    @media print {
+      body { padding: 20px; }
+      pre  { font-size: 11px; }
+      .page-header, th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  HEADER                                                    -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="page-header">
+  <div class="course">BS — MOBILE APPLICATION DEVELOPMENT · FLUTTER</div>
+  <h1>Lecture 20 — Notification Services</h1>
+  <div class="meta">Topics: Local Notifications · Push Notifications · FCM · flutter_local_notifications · Channels · Permissions · Tap Handling</div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  OBJECTIVES                                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div class="objectives">
+  <h3>Learning Objectives</h3>
+  <ul>
+    <li>Understand the difference between local notifications and push notifications</li>
+    <li>Know when to use each type and real-world examples of both</li>
+    <li>Set up <code>flutter_local_notifications</code> and request permissions</li>
+    <li>Show an immediate notification, a scheduled notification, and a notification with a payload</li>
+    <li>Handle notification taps to navigate to the right screen</li>
+    <li>Understand Android Notification Channels and why they exist</li>
+    <li>Understand how Firebase Cloud Messaging (FCM) delivers push notifications end-to-end</li>
+  </ul>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  1. WHAT IS A NOTIFICATION?                                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>1. What Is a Notification?</h2>
+
+<p>A notification is a short message that appears outside the app — in the status bar,
+on the lock screen, or as a banner at the top of the screen — to inform the user
+about something important.</p>
+
+<div class="notif-mockup">
+  <div class="notif-icon">🛍</div>
+  <div class="notif-body">
+    <div class="notif-title">ShopApp</div>
+    <div class="notif-text">Your order has been placed! Tap to track.</div>
+    <div class="notif-time">now</div>
+  </div>
+</div>
+
+<div class="notif-mockup">
+  <div class="notif-icon">🔔</div>
+  <div class="notif-body">
+    <div class="notif-title">ShopApp — Flash Sale!</div>
+    <div class="notif-text">50% off on all electronics today only.</div>
+    <div class="notif-time">2 min ago</div>
+  </div>
+</div>
+
+<p>Notifications are one of the most powerful engagement tools in mobile apps.
+They bring users back even when the app is closed. Used responsibly, they add
+real value. Used carelessly, they make users uninstall the app.</p>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  2. TWO TYPES OF NOTIFICATIONS                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>2. Two Types — Local vs Push</h2>
+
+<p>Every mobile notification is one of two fundamentally different types:</p>
+
+<div class="two-col">
+  <div class="box local-box">
+    <h4>📱 Local Notification</h4>
+    <p>Created and triggered entirely by the app itself — <strong>no internet required</strong>.
+    The app tells the OS: "show this notification now" or "show it at 9am tomorrow".
+    The OS queues it and delivers it.</p>
+    <ul style="margin-top: 8px;">
+      <li>No server involved</li>
+      <li>Works offline</li>
+      <li>App schedules it in advance</li>
+      <li>Immediate or time-based</li>
+    </ul>
+    <p style="margin-top: 8px;"><strong>Examples:</strong> alarm clock, daily reminder, "You haven't opened the app in 3 days", countdown timer done</p>
+    <p style="margin-top: 8px; color: #1565C0;"><em>Flutter: flutter_local_notifications</em></p>
+  </div>
+  <div class="box push-box">
+    <h4>☁️ Push Notification</h4>
+    <p>Sent from a <strong>server</strong> to the device — requires internet.
+    Your backend sends a message to a notification service (FCM/APNs),
+    which delivers it to the device even if the app is closed.</p>
+    <ul style="margin-top: 8px;">
+      <li>Server triggers it</li>
+      <li>Requires internet</li>
+      <li>Can target specific users</li>
+      <li>Real-time from backend</li>
+    </ul>
+    <p style="margin-top: 8px;"><strong>Examples:</strong> new WhatsApp message, order shipped, breaking news alert, promotional offer</p>
+    <p style="margin-top: 8px; color: #6a1b9a;"><em>Flutter: firebase_messaging (FCM)</em></p>
+  </div>
+</div>
+
+<table>
+  <tr>
+    <th>Feature</th>
+    <th>Local Notification</th>
+    <th>Push Notification</th>
+  </tr>
+  <tr>
+    <td>Triggered by</td>
+    <td>The app itself</td>
+    <td>Your server / backend</td>
+  </tr>
+  <tr>
+    <td>Internet needed?</td>
+    <td>No</td>
+    <td>Yes</td>
+  </tr>
+  <tr>
+    <td>Works when app is closed?</td>
+    <td>Yes (scheduled ahead of time)</td>
+    <td>Yes</td>
+  </tr>
+  <tr>
+    <td>Can target a specific user?</td>
+    <td>No — only the local device</td>
+    <td>Yes — by device token</td>
+  </tr>
+  <tr>
+    <td>Setup complexity</td>
+    <td>Simple — one package</td>
+    <td>Requires Firebase project + backend</td>
+  </tr>
+  <tr>
+    <td>Flutter package</td>
+    <td><code>flutter_local_notifications</code></td>
+    <td><code>firebase_messaging</code></td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  3. ANDROID NOTIFICATION CHANNELS                          -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>3. Android Notification Channels</h2>
+
+<p>From Android 8 onwards, every notification must belong to a
+<strong>channel</strong>. A channel is a category of notifications.
+The user can go to app settings and turn off or customise individual channels
+without disabling all notifications.</p>
+
+<p>For example, a shopping app might have:</p>
+
+<table>
+  <tr>
+    <th>Channel ID</th>
+    <th>Channel Name</th>
+    <th>Importance</th>
+    <th>What it shows</th>
+  </tr>
+  <tr>
+    <td><code>orders</code></td>
+    <td>Order Updates</td>
+    <td>High — makes sound</td>
+    <td>Order placed, shipped, delivered</td>
+  </tr>
+  <tr>
+    <td><code>promotions</code></td>
+    <td>Promotions &amp; Offers</td>
+    <td>Low — silent</td>
+    <td>Sales, discount codes, new arrivals</td>
+  </tr>
+  <tr>
+    <td><code>reminders</code></td>
+    <td>Reminders</td>
+    <td>Default</td>
+    <td>Abandoned cart, wishlist restock</td>
+  </tr>
+</table>
+
+<div class="tip">
+  <strong>iOS does not have channels</strong> — it uses a simpler permission model where
+  the user allows or denies all notifications from the app. Channels are Android-only,
+  but <code>flutter_local_notifications</code> handles this difference for you — you
+  define channels and they are simply ignored on iOS.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  4. NOTIFICATION IMPORTANCE LEVELS                         -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>4. Notification Importance Levels</h2>
+
+<p>Each notification (and Android channel) has an importance level that controls
+how it is presented to the user:</p>
+
+<table>
+  <tr>
+    <th>Level</th>
+    <th>Android</th>
+    <th>iOS Priority</th>
+    <th>Behaviour</th>
+  </tr>
+  <tr>
+    <td><strong>Max / Urgent</strong></td>
+    <td><code>Importance.max</code></td>
+    <td>Critical</td>
+    <td>Makes sound, vibrates, shows as heads-up banner over other apps</td>
+  </tr>
+  <tr>
+    <td><strong>High</strong></td>
+    <td><code>Importance.high</code></td>
+    <td>High</td>
+    <td>Makes sound, vibrates, shows in notification tray</td>
+  </tr>
+  <tr>
+    <td><strong>Default</strong></td>
+    <td><code>Importance.defaultImportance</code></td>
+    <td>Default</td>
+    <td>Makes sound, no vibration, shows in tray</td>
+  </tr>
+  <tr>
+    <td><strong>Low</strong></td>
+    <td><code>Importance.low</code></td>
+    <td>Low</td>
+    <td>No sound, no vibration, silent entry in tray</td>
+  </tr>
+  <tr>
+    <td><strong>Min</strong></td>
+    <td><code>Importance.min</code></td>
+    <td>Passive</td>
+    <td>No sound, hidden in tray — barely visible</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  5. PART A — LOCAL NOTIFICATIONS                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>5. Part A — Local Notifications with flutter_local_notifications</h2>
+
+<h3>Step 1 — Add the package</h3>
+
+<span class="filepath">pubspec.yaml</span>
+<pre>
+dependencies:
+  flutter_local_notifications: ^<span class="num">18.0.0</span>
+  timezone: ^<span class="num">0.9.4</span>   <span class="cm"># needed for scheduled notifications with correct time zones</span>
+</pre>
+
+<h3>Step 2 — Create a NotificationService</h3>
+
+<p>Following the same pattern as <code>CartDatabase</code> (Lecture 19), we create a
+service class that handles all notification logic. The rest of the app just calls its methods.</p>
+
+<span class="filepath">lib/services/notification_service.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter_local_notifications/flutter_local_notifications.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:timezone/timezone.dart'</span> <span class="kw">as</span> tz;
+<span class="kw">import</span> <span class="st">'package:timezone/data/latest.dart'</span> <span class="kw">as</span> tz;
+
+<span class="kw">class</span> <span class="cl">NotificationService</span> {
+
+  <span class="cm">// Singleton — one instance, used everywhere</span>
+  <span class="kw">static final</span> <span class="cl">NotificationService</span> instance = <span class="cl">NotificationService</span>._internal();
+  <span class="cl">NotificationService</span>._internal();
+
+  <span class="cm">// The core plugin object from the package</span>
+  <span class="kw">final</span> <span class="cl">FlutterLocalNotificationsPlugin</span> _plugin =
+      <span class="cl">FlutterLocalNotificationsPlugin</span>();
+
+  <span class="cm">// ── Initialise ────────────────────────────────────────────────
+  // Must be called once — in main() before runApp().
+  // Sets up Android channel + iOS permission request.</span>
+  <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">init</span>() <span class="kw">async</span> {
+    <span class="cm">// Initialise the time zone database (needed for scheduled notifications)</span>
+    tz.<span class="fn">initializeTimeZones</span>();
+
+    <span class="cm">// Android settings: the icon shown in the status bar.
+    // '@mipmap/ic_launcher' is the default app icon — always available.</span>
+    <span class="kw">const</span> android = <span class="cl">AndroidInitializationSettings</span>(<span class="st">'@mipmap/ic_launcher'</span>);
+
+    <span class="cm">// iOS settings: ask the user for permission on first launch</span>
+    <span class="kw">const</span> ios = <span class="cl">DarwinInitializationSettings</span>(
+      requestAlertPermission: <span class="kw">true</span>,
+      requestBadgePermission: <span class="kw">true</span>,
+      requestSoundPermission: <span class="kw">true</span>,
+    );
+
+    <span class="kw">await</span> _plugin.<span class="fn">initialize</span>(
+      <span class="kw">const</span> <span class="cl">InitializationSettings</span>(android: android, iOS: ios),
+      <span class="cm">// onDidReceiveNotificationResponse is called when the user TAPS a notification</span>
+      onDidReceiveNotificationResponse: _onNotificationTap,
+    );
+
+    <span class="cm">// Create the Android notification channel</span>
+    <span class="kw">await</span> _plugin
+        .resolvePlatformSpecificImplementation&lt;<span class="cl">AndroidFlutterLocalNotificationsPlugin</span>&gt;()
+        ?.<span class="fn">createNotificationChannel</span>(<span class="kw">const</span> <span class="cl">AndroidNotificationChannel</span>(
+          <span class="st">'main_channel'</span>,      <span class="cm">// channel id</span>
+          <span class="st">'Main Notifications'</span>, <span class="cm">// channel name — shown in Android settings</span>
+          description: <span class="st">'General app notifications'</span>,
+          importance: <span class="cl">Importance</span>.high,
+        ));
+  }
+
+  <span class="cm">// Called when the user taps a notification</span>
+  <span class="kw">void</span> <span class="fn">_onNotificationTap</span>(<span class="cl">NotificationResponse</span> response) {
+    <span class="cm">// response.payload is the string we attached when showing the notification.
+    // Use it to decide which screen to open.</span>
+    <span class="kw">final</span> payload = response.payload;
+    <span class="fn">print</span>(<span class="st">'Notification tapped. Payload: $payload'</span>);
+    <span class="cm">// Navigation logic goes here — see Section 8</span>
+  }
+}
+</pre>
+
+<h3>Step 3 — Request permission on Android 13+</h3>
+
+<p>Android 13 (API 33) added a runtime permission for notifications, just like iOS.
+You need to request it explicitly:</p>
+
+<pre>
+<span class="cm">// Add this method to NotificationService</span>
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">requestPermission</span>() <span class="kw">async</span> {
+  <span class="kw">final</span> android = _plugin
+      .<span class="fn">resolvePlatformSpecificImplementation</span>&lt;<span class="cl">AndroidFlutterLocalNotificationsPlugin</span>&gt;();
+  <span class="kw">await</span> android?.<span class="fn">requestNotificationsPermission</span>();
+}
+</pre>
+
+<pre>
+<span class="cm">// Call it early — in main() or on the first screen</span>
+<span class="kw">await</span> <span class="cl">NotificationService</span>.instance.<span class="fn">requestPermission</span>();
+</pre>
+
+<h3>Step 4 — Initialise in main()</h3>
+
+<span class="filepath">lib/main.dart</span>
+<pre>
+<span class="kw">void</span> <span class="fn">main</span>() <span class="kw">async</span> {
+  <span class="cl">WidgetsFlutterBinding</span>.<span class="fn">ensureInitialized</span>(); <span class="cm">// required before any async native call</span>
+
+  <span class="kw">await</span> <span class="cl">NotificationService</span>.instance.<span class="fn">init</span>(); <span class="cm">// set up channels + permissions</span>
+
+  <span class="fn">runApp</span>(<span class="kw">const</span> <span class="cl">MyApp</span>());
+}
+</pre>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  6. SHOWING NOTIFICATIONS                                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>6. Showing Notifications — Three Scenarios</h2>
+
+<p>Add these methods to <code>NotificationService</code>:</p>
+
+<h3>6a — Immediate Notification (show right now)</h3>
+
+<pre>
+<span class="cm">// Show a notification instantly.
+// Use this after an action — e.g. after the user places an order.</span>
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">showNow</span>({
+  <span class="kw">required</span> <span class="kw">int</span>    id,      <span class="cm">// unique number — use a different id per notification type</span>
+  <span class="kw">required</span> <span class="cl">String</span> title,
+  <span class="kw">required</span> <span class="cl">String</span> body,
+  <span class="cl">String</span>? payload,         <span class="cm">// optional data passed back when notification is tapped</span>
+}) <span class="kw">async</span> {
+  <span class="kw">await</span> _plugin.<span class="fn">show</span>(
+    id,
+    title,
+    body,
+    <span class="kw">const</span> <span class="cl">NotificationDetails</span>(
+      android: <span class="cl">AndroidNotificationDetails</span>(
+        <span class="st">'main_channel'</span>,      <span class="cm">// must match the channel id created in init()</span>
+        <span class="st">'Main Notifications'</span>,
+        importance: <span class="cl">Importance</span>.high,
+        priority: <span class="cl">Priority</span>.high,
+      ),
+      iOS: <span class="cl">DarwinNotificationDetails</span>(),
+    ),
+    payload: payload,
+  );
+}
+</pre>
+
+<p><strong>Usage example — after checkout:</strong></p>
+
+<pre>
+<span class="cm">// In cart_screen.dart, after the user taps Checkout</span>
+context.<span class="fn">read</span>&lt;<span class="cl">CartProvider</span>&gt;().<span class="fn">clearCart</span>();
+
+<span class="kw">await</span> <span class="cl">NotificationService</span>.instance.<span class="fn">showNow</span>(
+  id:      <span class="num">1</span>,
+  title:   <span class="st">'Order Placed!'</span>,
+  body:    <span class="st">'Your order has been confirmed. We will ship it soon.'</span>,
+  payload: <span class="st">'order_confirmation'</span>,
+);
+</pre>
+
+<h3>6b — Scheduled Notification (show at a future time)</h3>
+
+<pre>
+<span class="cm">// Show a notification after a delay.
+// Use this for reminders — "You left items in your cart!"</span>
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">scheduleAfter</span>({
+  <span class="kw">required</span> <span class="kw">int</span>      id,
+  <span class="kw">required</span> <span class="cl">String</span>   title,
+  <span class="kw">required</span> <span class="cl">String</span>   body,
+  <span class="kw">required</span> <span class="cl">Duration</span> delay,   <span class="cm">// how long from now to wait</span>
+  <span class="cl">String</span>? payload,
+}) <span class="kw">async</span> {
+  <span class="cm">// Convert "now + delay" into a TZDateTime (timezone-aware)</span>
+  <span class="kw">final</span> when = tz.<span class="cl">TZDateTime</span>.<span class="fn">now</span>(tz.local).<span class="fn">add</span>(delay);
+
+  <span class="kw">await</span> _plugin.<span class="fn">zonedSchedule</span>(
+    id,
+    title,
+    body,
+    when,
+    <span class="kw">const</span> <span class="cl">NotificationDetails</span>(
+      android: <span class="cl">AndroidNotificationDetails</span>(
+        <span class="st">'main_channel'</span>, <span class="st">'Main Notifications'</span>,
+        importance: <span class="cl">Importance</span>.defaultImportance,
+      ),
+      iOS: <span class="cl">DarwinNotificationDetails</span>(),
+    ),
+    payload: payload,
+    androidScheduleMode: <span class="cl">AndroidScheduleMode</span>.exactAllowWhileIdle,
+    <span class="cm">// exactAllowWhileIdle = fire even if the device is in Doze mode</span>
+  );
+}
+</pre>
+
+<p><strong>Usage example — abandoned cart reminder:</strong></p>
+
+<pre>
+<span class="cm">// When user adds item to cart but doesn't checkout,
+// schedule a reminder for 1 hour later</span>
+<span class="kw">await</span> <span class="cl">NotificationService</span>.instance.<span class="fn">scheduleAfter</span>(
+  id:    <span class="num">2</span>,
+  title: <span class="st">'Items waiting in your cart!'</span>,
+  body:  <span class="st">'You left some items behind. Complete your purchase now.'</span>,
+  delay: <span class="kw">const</span> <span class="cl">Duration</span>(hours: <span class="num">1</span>),
+  payload: <span class="st">'cart_reminder'</span>,
+);
+</pre>
+
+<h3>6c — Cancel a Notification</h3>
+
+<pre>
+<span class="cm">// Cancel a specific notification by its id</span>
+<span class="kw">await</span> _plugin.<span class="fn">cancel</span>(<span class="num">2</span>); <span class="cm">// cancel the cart reminder if user checks out</span>
+
+<span class="cm">// Cancel ALL notifications</span>
+<span class="kw">await</span> _plugin.<span class="fn">cancelAll</span>();
+</pre>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  7. NOTIFICATION PAYLOAD & TAP HANDLING                   -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>7. Handling Notification Taps</h2>
+
+<p>When the user taps a notification, your app opens and
+<code>_onNotificationTap</code> is called with the payload string you attached.
+You use this payload to navigate to the right screen.</p>
+
+<div class="diagram">
+  User taps "Order Placed!" notification<br>
+  ↓<br>
+  App opens (or comes to foreground)<br>
+  ↓<br>
+  <code>_onNotificationTap(response)</code> is called<br>
+  ↓<br>
+  <code>response.payload == 'order_confirmation'</code><br>
+  ↓<br>
+  Navigate to the Orders screen (or Cart screen)
+</div>
+
+<p>To navigate from inside <code>NotificationService</code> (which has no
+<code>BuildContext</code>), the cleanest approach is a
+<strong>global navigator key</strong>:</p>
+
+<span class="filepath">lib/main.dart</span>
+<pre>
+<span class="cm">// Declare a global key — gives access to the Navigator from anywhere</span>
+<span class="kw">final</span> <span class="cl">GlobalKey</span>&lt;<span class="cl">NavigatorState</span>&gt; navigatorKey = <span class="cl">GlobalKey</span>&lt;<span class="cl">NavigatorState</span>&gt;();
+
+<span class="kw">void</span> <span class="fn">main</span>() <span class="kw">async</span> {
+  <span class="cl">WidgetsFlutterBinding</span>.<span class="fn">ensureInitialized</span>();
+  <span class="kw">await</span> <span class="cl">NotificationService</span>.instance.<span class="fn">init</span>();
+  <span class="fn">runApp</span>(<span class="cl">MaterialApp</span>(
+    navigatorKey: navigatorKey, <span class="cm">// attach the key to MaterialApp</span>
+    home: <span class="kw">const</span> <span class="cl">SplashScreen</span>(),
+  ));
+}
+</pre>
+
+<span class="filepath">lib/services/notification_service.dart — tap handler</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:flutter_application_2/main.dart'</span>; <span class="cm">// for navigatorKey</span>
+
+<span class="kw">void</span> <span class="fn">_onNotificationTap</span>(<span class="cl">NotificationResponse</span> response) {
+  <span class="kw">final</span> payload = response.payload ?? <span class="st">''</span>;
+
+  <span class="kw">switch</span> (payload) {
+    <span class="kw">case</span> <span class="st">'order_confirmation'</span>:
+      <span class="cm">// Push to a specific screen using the global navigator</span>
+      navigatorKey.currentState?.<span class="fn">pushNamed</span>(<span class="st">'/cart'</span>);
+      <span class="kw">break</span>;
+    <span class="kw">case</span> <span class="st">'cart_reminder'</span>:
+      navigatorKey.currentState?.<span class="fn">pushNamed</span>(<span class="st">'/cart'</span>);
+      <span class="kw">break</span>;
+    <span class="kw">default</span>:
+      <span class="cm">// Unknown payload — go to home</span>
+      navigatorKey.currentState?.<span class="fn">pushNamed</span>(<span class="st">'/'</span>);
+  }
+}
+</pre>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  8. PART B — PUSH NOTIFICATIONS WITH FCM                   -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>8. Part B — Push Notifications with Firebase Cloud Messaging (FCM)</h2>
+
+<p>Firebase Cloud Messaging (FCM) is Google's free service for sending push
+notifications to Android and iOS devices. It is the most widely used push
+notification service in the world.</p>
+
+<h3>The Complete Push Notification Flow</h3>
+
+<div class="diagram">
+  <strong>Setup (done once)</strong><br>
+  App installs → registers with FCM → receives a unique <strong>device token</strong><br>
+  App sends token to your backend server → server stores it<br><br>
+  <strong>Sending a notification</strong><br>
+  Event happens on server (order placed, new message, sale starts)<br>
+  ↓<br>
+  Server calls FCM API with: device token + title + body + data<br>
+  ↓<br>
+  FCM routes the message to the correct device<br>
+  ↓<br>
+  On Android: FCM delivers directly<br>
+  On iOS: FCM routes through APNs (Apple Push Notification service)<br>
+  ↓<br>
+  Notification appears on the user's screen ✅<br><br>
+  <strong>If the app is in the foreground</strong> → <code>onMessage</code> callback fires<br>
+  <strong>If the app is in the background</strong> → notification shown in tray; <code>onMessageOpenedApp</code> fires on tap<br>
+  <strong>If the app is terminated</strong> → notification shown; check <code>getInitialMessage()</code> on next open
+</div>
+
+<h3>FCM Setup Steps</h3>
+
+<ol>
+  <li>Create a project on <strong>console.firebase.google.com</strong></li>
+  <li>Add your Flutter app (Android + iOS) to the project</li>
+  <li>Download <code>google-services.json</code> (Android) and <code>GoogleService-Info.plist</code> (iOS) and place them in the correct folders</li>
+  <li>Add <code>firebase_core</code> and <code>firebase_messaging</code> to <code>pubspec.yaml</code></li>
+  <li>Call <code>Firebase.initializeApp()</code> in <code>main()</code></li>
+</ol>
+
+<span class="filepath">pubspec.yaml — FCM packages</span>
+<pre>
+dependencies:
+  firebase_core:      ^<span class="num">3.0.0</span>
+  firebase_messaging: ^<span class="num">15.0.0</span>
+</pre>
+
+<h3>FCM — Handling Messages in Flutter</h3>
+
+<span class="filepath">lib/services/push_notification_service.dart</span>
+<pre>
+<span class="kw">import</span> <span class="st">'package:firebase_messaging/firebase_messaging.dart'</span>;
+<span class="kw">import</span> <span class="st">'package:firebase_core/firebase_core.dart'</span>;
+
+<span class="cm">// Top-level function — handles messages when app is TERMINATED (background isolate)</span>
+<span class="kw">@pragma</span>(<span class="st">'vm:entry-point'</span>)
+<span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">_firebaseBackgroundHandler</span>(<span class="cl">RemoteMessage</span> message) <span class="kw">async</span> {
+  <span class="kw">await</span> <span class="cl">Firebase</span>.<span class="fn">initializeApp</span>();
+  <span class="fn">print</span>(<span class="st">'Background message: </span>${message.notification?.title}<span class="st">'</span>);
+  <span class="cm">// Show a local notification here so the user sees it immediately</span>
+}
+
+<span class="kw">class</span> <span class="cl">PushNotificationService</span> {
+
+  <span class="kw">final</span> _messaging = <span class="cl">FirebaseMessaging</span>.instance;
+
+  <span class="cm">// Call this once in main() after Firebase.initializeApp()</span>
+  <span class="cl">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">init</span>() <span class="kw">async</span> {
+
+    <span class="cm">// 1. Request permission (required on iOS, optional on Android 13+)</span>
+    <span class="kw">await</span> _messaging.<span class="fn">requestPermission</span>();
+
+    <span class="cm">// 2. Get this device's unique FCM token — send it to your backend</span>
+    <span class="kw">final</span> token = <span class="kw">await</span> _messaging.<span class="fn">getToken</span>();
+    <span class="fn">print</span>(<span class="st">'FCM token: $token'</span>); <span class="cm">// send this to your server</span>
+
+    <span class="cm">// 3. Register the background handler</span>
+    <span class="cl">FirebaseMessaging</span>.<span class="fn">onBackgroundMessage</span>(_firebaseBackgroundHandler);
+
+    <span class="cm">// 4. Handle messages when the app IS in the foreground</span>
+    <span class="cl">FirebaseMessaging</span>.<span class="fn">onMessage</span>.<span class="fn">listen</span>((message) {
+      <span class="fn">print</span>(<span class="st">'Foreground message: </span>${message.notification?.title}<span class="st">'</span>);
+      <span class="cm">// FCM does NOT automatically show a notification when the app is open.
+      // You must display it yourself using flutter_local_notifications.</span>
+      <span class="cl">NotificationService</span>.instance.<span class="fn">showNow</span>(
+        id:    <span class="num">99</span>,
+        title: message.notification?.title ?? <span class="st">'New message'</span>,
+        body:  message.notification?.body  ?? <span class="st">''</span>,
+        payload: message.data[<span class="st">'screen'</span>],
+      );
+    });
+
+    <span class="cm">// 5. Handle notification TAP when app was in background (not terminated)</span>
+    <span class="cl">FirebaseMessaging</span>.<span class="fn">onMessageOpenedApp</span>.<span class="fn">listen</span>((message) {
+      <span class="fn">print</span>(<span class="st">'Notification opened from background: </span>${message.data}<span class="st">'</span>);
+      <span class="cm">// Navigate based on message.data['screen']</span>
+    });
+
+    <span class="cm">// 6. Check if the app was opened BY tapping a notification (was terminated)</span>
+    <span class="kw">final</span> initial = <span class="kw">await</span> _messaging.<span class="fn">getInitialMessage</span>();
+    <span class="kw">if</span> (initial != <span class="kw">null</span>) {
+      <span class="fn">print</span>(<span class="st">'App opened from terminated via notification: </span>${initial.data}<span class="st">'</span>);
+    }
+  }
+}
+</pre>
+
+<div class="tip">
+  <strong>Why use both packages together?</strong> FCM delivers push messages to the device,
+  but when the app is in the <em>foreground</em>, FCM does NOT show a visible notification
+  automatically — it just calls your <code>onMessage</code> callback. You must manually call
+  <code>flutter_local_notifications</code> to display the banner. This is why real apps use both.
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  9. THREE APP STATES & WHICH CALLBACK FIRES                -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>9. Three App States — Which Callback Fires When</h2>
+
+<table>
+  <tr>
+    <th>App State</th>
+    <th>What happens</th>
+    <th>FCM Callback</th>
+  </tr>
+  <tr>
+    <td><strong>Foreground</strong> (open &amp; visible)</td>
+    <td>No automatic notification banner — you must show one manually</td>
+    <td><code>FirebaseMessaging.onMessage</code></td>
+  </tr>
+  <tr>
+    <td><strong>Background</strong> (open but not visible)</td>
+    <td>Notification banner shown automatically. If user taps it:</td>
+    <td><code>FirebaseMessaging.onMessageOpenedApp</code></td>
+  </tr>
+  <tr>
+    <td><strong>Terminated</strong> (app process not running)</td>
+    <td>Notification banner shown automatically. If user taps it, app opens and:</td>
+    <td><code>FirebaseMessaging.getInitialMessage()</code></td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  10. FULL PICTURE — LOCAL + PUSH TOGETHER                  -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>10. How Local and Push Work Together</h2>
+
+<div class="diagram">
+  <strong>Use Case: User places an order</strong><br><br>
+  User taps Checkout in the app<br>
+  ↓<br>
+  App clears cart → calls <strong>Local Notification</strong> → "Order placed!" banner appears immediately ✅<br>
+  ↓<br>
+  App calls backend API → server processes order<br>
+  ↓<br>
+  Server sends <strong>Push Notification</strong> via FCM: "Your order has been shipped! 🚚"<br>
+  ↓<br>
+  Notification arrives even if user has closed the app ✅<br><br>
+  <strong>Local notification</strong> = instant confirmation (no server wait)<br>
+  <strong>Push notification</strong> = server-triggered update hours later
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  11. NOTIFICATION BEST PRACTICES                           -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>11. Best Practices — Being a Good Notification Citizen</h2>
+
+<table>
+  <tr>
+    <th>Rule</th>
+    <th>Why</th>
+  </tr>
+  <tr>
+    <td>Ask for permission at the right moment</td>
+    <td>Asking immediately on first launch gets denied. Ask after the user has seen the app's value — e.g. after they place their first order.</td>
+  </tr>
+  <tr>
+    <td>Every notification must provide clear value</td>
+    <td>Vague notifications ("Check out what's new!") get disabled. Specific ones ("Your order has shipped — arrives Friday") get read.</td>
+  </tr>
+  <tr>
+    <td>Use the right importance level</td>
+    <td>Not every notification needs to make a sound. Promotional offers should be silent (<code>Importance.low</code>). Order updates should make a sound (<code>Importance.high</code>).</td>
+  </tr>
+  <tr>
+    <td>Cancel scheduled notifications when no longer needed</td>
+    <td>If the user checks out, cancel the "abandoned cart" reminder. Stale notifications confuse users.</td>
+  </tr>
+  <tr>
+    <td>Always handle the notification tap</td>
+    <td>Tapping a notification that does nothing — or opens the home screen instead of the relevant content — is a broken experience.</td>
+  </tr>
+  <tr>
+    <td>Never spam</td>
+    <td>More than 1–2 notifications per day is considered spam. Users who feel spammed will disable notifications or uninstall.</td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  12. COMMON MISTAKES                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>12. Common Mistakes to Avoid</h2>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Using a different channel id at show time</h4>
+    <pre style="font-size:11px; margin:4px 0">// Created channel with id 'main_channel'
+// But showing with 'orders' — mismatch!
+AndroidNotificationDetails(
+  'orders', 'Orders', // ⚠️ channel not created
+)</pre>
+    <p>On Android 8+, the notification is silently dropped if the channel doesn't exist.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Channel id must match exactly</h4>
+    <pre style="font-size:11px; margin:4px 0">// Created:
+AndroidNotificationChannel('main_channel', ...)
+
+// Used:
+AndroidNotificationDetails(
+  'main_channel', // ✅ same id
+  'Main Notifications',
+)</pre>
+    <p>Always use the exact same string you used when creating the channel.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Reusing the same notification id</h4>
+    <pre style="font-size:11px; margin:4px 0">// Every product added uses id 1
+NotificationService.showNow(id: 1, ...);
+NotificationService.showNow(id: 1, ...);
+// Second notification REPLACES the first!</pre>
+    <p>Same id = same notification slot. Second call silently replaces the first.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Use unique ids per notification type</h4>
+    <pre style="font-size:11px; margin:4px 0">// Different id per category
+static const int orderNotifId    = 1;
+static const int cartReminderId  = 2;
+static const int promoNotifId    = 3;
+
+showNow(id: orderNotifId, ...);
+showNow(id: cartReminderId, ...); // both visible ✅</pre>
+    <p>Each notification type gets its own reserved id.</p>
+  </div>
+</div>
+
+<div class="two-col">
+  <div class="box bad">
+    <h4>❌ Forgetting foreground FCM display</h4>
+    <pre style="font-size:11px; margin:4px 0">FirebaseMessaging.onMessage.listen((msg) {
+  // App is open — do nothing
+  // User never sees the notification! ⚠️
+});</pre>
+    <p>FCM does not auto-display banners when the app is in the foreground.</p>
+  </div>
+  <div class="box good">
+    <h4>✅ Show a local notification manually</h4>
+    <pre style="font-size:11px; margin:4px 0">FirebaseMessaging.onMessage.listen((msg) {
+  NotificationService.instance.showNow(
+    id:    99,
+    title: msg.notification?.title ?? '',
+    body:  msg.notification?.body  ?? '',
+  ); // ✅ user sees the banner
+});</pre>
+    <p>Use <code>flutter_local_notifications</code> to display FCM messages in the foreground.</p>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  13. QUICK REFERENCE                                       -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>13. Quick Reference</h2>
+
+<table>
+  <tr>
+    <th>What You Want to Do</th>
+    <th>Code</th>
+  </tr>
+  <tr>
+    <td>Initialise local notifications</td>
+    <td><code>NotificationService.instance.init()</code> in <code>main()</code></td>
+  </tr>
+  <tr>
+    <td>Request notification permission</td>
+    <td><code>NotificationService.instance.requestPermission()</code></td>
+  </tr>
+  <tr>
+    <td>Show a notification immediately</td>
+    <td><code>_plugin.show(id, title, body, details, payload: '...')</code></td>
+  </tr>
+  <tr>
+    <td>Schedule a notification</td>
+    <td><code>_plugin.zonedSchedule(id, title, body, when, details)</code></td>
+  </tr>
+  <tr>
+    <td>Cancel one notification</td>
+    <td><code>_plugin.cancel(id)</code></td>
+  </tr>
+  <tr>
+    <td>Cancel all notifications</td>
+    <td><code>_plugin.cancelAll()</code></td>
+  </tr>
+  <tr>
+    <td>Handle notification tap</td>
+    <td><code>onDidReceiveNotificationResponse</code> callback in <code>initialize()</code></td>
+  </tr>
+  <tr>
+    <td>Get FCM device token</td>
+    <td><code>await FirebaseMessaging.instance.getToken()</code></td>
+  </tr>
+  <tr>
+    <td>Handle push when app is open</td>
+    <td><code>FirebaseMessaging.onMessage.listen(...)</code></td>
+  </tr>
+  <tr>
+    <td>Handle tap from background</td>
+    <td><code>FirebaseMessaging.onMessageOpenedApp.listen(...)</code></td>
+  </tr>
+  <tr>
+    <td>Handle tap from terminated state</td>
+    <td><code>await FirebaseMessaging.instance.getInitialMessage()</code></td>
+  </tr>
+  <tr>
+    <td>Navigate from a notification tap</td>
+    <td>Use a <code>GlobalKey&lt;NavigatorState&gt;</code> in <code>main.dart</code></td>
+  </tr>
+</table>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!--  PRACTICE TASK                                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<h2>Practice Task</h2>
+<ol>
+  <li>Add <code>flutter_local_notifications</code> and <code>timezone</code> to
+      <code>pubspec.yaml</code> and create <code>NotificationService</code> with
+      <code>init()</code>, <code>showNow()</code> and <code>scheduleAfter()</code>.</li>
+  <li>Call <code>NotificationService.instance.init()</code> in <code>main()</code>
+      and run the app — check the console for any errors.</li>
+  <li>In <code>cart_screen.dart</code>, after the user taps <strong>Checkout</strong>,
+      call <code>NotificationService.instance.showNow()</code> with the title
+      "Order Placed!" and body "Thanks for your order. We'll ship it soon."</li>
+  <li>Hot-restart, add items to the cart, and tap Checkout — you should see the
+      notification banner appear.</li>
+  <li>Add a second notification: when a product is added to the cart, schedule a
+      reminder for 30 seconds later: "Don't forget your items! Tap to checkout."
+      When the user checks out, cancel that reminder.</li>
+  <li>Test the 30-second reminder: add a product to the cart, then close the app.
+      After 30 seconds the reminder notification should appear.</li>
+  <li><strong>Challenge:</strong> Think about a real app you use (WhatsApp, Instagram,
+      your bank app). Make a list of all the notifications it sends. For each one,
+      decide: is it a <em>local</em> or <em>push</em> notification? How do you know?</li>
+  <li><strong>Challenge:</strong> Research what happens on iOS if you call
+      <code>showNow()</code> without first calling <code>requestPermission()</code>.
+      Does the notification appear? What does the user see?</li>
+</ol>
+
+<div class="success">
+  <strong>Key Takeaway:</strong>
+  <strong>Local notifications</strong> are generated by the app itself and are perfect
+  for reminders, countdowns, and immediate confirmations — no internet, no server.
+  <strong>Push notifications</strong> are sent by your server via FCM and reach the user
+  even when the app is closed — perfect for real-time events like messages, order updates,
+  and breaking news. Most production apps use both together: local for instant UI feedback,
+  push for server-driven events. Always handle the notification tap to navigate the user to
+  relevant content, and always be respectful — one well-timed, valuable notification is
+  worth more than ten ignored ones.
+</div>
+
+</body>
+</html>

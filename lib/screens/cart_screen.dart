@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_application_2/providers/cart_provider.dart';
+import 'package:flutter_application_2/services/notification_service.dart'; // NEW (Lecture 20)
 
 // CartScreen now reads its data from CartProvider instead of
 // keeping its own local list. This means any screen that adds
@@ -152,8 +153,17 @@ class CartScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
                         onPressed: () {
+                          // Capture totals before clearing the cart
+                          final itemCount = cart.totalItems;
+                          final total = cart.totalPrice;
+
                           // Clear all cart items
                           context.read<CartProvider>().clearCart();
+
+                          // Fire a local notification confirming the order (Lecture 20)
+                          NotificationService.instance
+                              .showOrderPlaced(itemCount, total);
+
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
                                 content: Text('Order placed! Cart cleared.')),

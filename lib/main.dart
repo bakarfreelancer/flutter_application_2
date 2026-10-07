@@ -3,9 +3,19 @@ import 'package:provider/provider.dart';
 import 'package:flutter_application_2/providers/cart_provider.dart';
 import 'package:flutter_application_2/providers/auth_provider.dart';
 import 'package:flutter_application_2/providers/theme_provider.dart'; // NEW (Lecture 14)
+import 'package:flutter_application_2/services/notification_service.dart'; // NEW (Lecture 20)
 import 'package:flutter_application_2/screens/splash.dart';
 
-void main() {
+// main() is now async so we can await NotificationService.init()
+// before the app renders anything. (Lecture 20)
+Future<void> main() async {
+  // Required whenever you call platform code (like notifications or SQLite)
+  // before runApp(). Ensures Flutter engine is ready.
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Set up the notification channels and request permission once.
+  await NotificationService.instance.init();
+
   runApp(
     MultiProvider(
       providers: [
