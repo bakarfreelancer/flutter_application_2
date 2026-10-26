@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pkill -f adb)",
+      "Bash(/Users/bakar/Library/Android/sdk/platform-tools/adb start-server:*)",
+      "Bash(/Users/bakar/Library/Android/sdk/platform-tools/adb devices:*)",
+      "Bash(/usr/libexec/java_home -V)"
+    ]
+  }
+}

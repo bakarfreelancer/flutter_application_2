@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lecture 21 – Maps & Location Services</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #222; line-height: 1.7; }
+  header { background: linear-gradient(135deg, #e65100, #ff6f00); color: #fff; padding: 40px 32px 32px; }
+  header h1 { font-size: 2rem; margin-bottom: 6px; }
+  header p  { font-size: 1.05rem; opacity: .85; }
+  .badge { display:inline-block; background:rgba(255,255,255,.2); border-radius:20px; padding:3px 12px; font-size:.8rem; margin-top:10px; }
+  main { max-width: 900px; margin: 32px auto; padding: 0 20px 60px; }
+
+  /* Objectives */
+  .objectives { background:#fff3e0; border-left:5px solid #ff6f00; border-radius:8px; padding:20px 24px; margin-bottom:32px; }
+  .objectives h2 { color:#e65100; margin-bottom:10px; }
+  .objectives ul { padding-left:20px; }
+  .objectives li { margin-bottom:5px; }
+
+  /* Section headings */
+  h2 { font-size:1.4rem; color:#e65100; margin:36px 0 12px; border-bottom:2px solid #ffe0b2; padding-bottom:6px; }
+  h3 { font-size:1.1rem; color:#bf360c; margin:22px 0 8px; }
+  p  { margin-bottom:12px; }
+
+  /* Code blocks */
+  pre { background:#1e1e2e; color:#cdd6f4; border-radius:10px; padding:20px; overflow-x:auto; font-size:.88rem; line-height:1.6; margin:14px 0 20px; }
+  .kw  { color:#cba6f7; font-weight:bold; }   /* keyword */
+  .cl  { color:#89dceb; }                      /* class / type */
+  .st  { color:#a6e3a1; }                      /* string */
+  .cm  { color:#6c7086; font-style:italic; }   /* comment */
+  .num { color:#fab387; }                      /* number */
+  .fn  { color:#89b4fa; }                      /* function / method */
+
+  /* Callout boxes */
+  .tip  { background:#e8f5e9; border-left:4px solid #43a047; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .warn { background:#fff8e1; border-left:4px solid #ffa000; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .info { background:#e3f2fd; border-left:4px solid #1e88e5; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .tip::before  { content:'✅ '; font-weight:bold; }
+  .warn::before { content:'⚠️ '; font-weight:bold; }
+  .info::before { content:'ℹ️ '; font-weight:bold; }
+
+  /* Diagram */
+  .diagram { background:#fff; border:2px dashed #ffcc80; border-radius:10px; padding:20px; margin:16px 0; font-family:monospace; font-size:.88rem; white-space:pre; overflow-x:auto; }
+
+  /* Two-column compare */
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+  .col { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  .col h4 { color:#e65100; margin-bottom:8px; }
+
+  /* Table */
+  table { width:100%; border-collapse:collapse; margin:16px 0; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.07); }
+  th { background:#ff6f00; color:#fff; padding:10px 14px; text-align:left; font-size:.9rem; }
+  td { padding:10px 14px; border-bottom:1px solid #ffe0b2; font-size:.9rem; }
+  tr:last-child td { border-bottom:none; }
+  tr:nth-child(even) td { background:#fff8f0; }
+
+  /* Practice */
+  .practice { background:#fce4ec; border-left:5px solid #e91e63; border-radius:8px; padding:20px 24px; margin-top:32px; }
+  .practice h2 { color:#c2185b; border:none; margin-top:0; }
+  .practice ol { padding-left:20px; }
+  .practice li { margin-bottom:8px; }
+
+  @media(max-width:600px){ .two-col{ grid-template-columns:1fr; } header h1{ font-size:1.5rem; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lecture 21 – Maps &amp; Location Services</h1>
+  <p>BS Computer Science · Mobile Application Development</p>
+  <span class="badge">Flutter · geolocator · flutter_map · OpenStreetMap</span>
+</header>
+
+<main>
+
+<!-- ── Objectives ─────────────────────────────────────────────────────────── -->
+<div class="objectives">
+  <h2>Learning Objectives</h2>
+  <ul>
+    <li>Understand how mobile devices determine location (GPS vs. network)</li>
+    <li>Handle location permissions the correct Flutter way</li>
+    <li>Read GPS coordinates with the <strong>geolocator</strong> package</li>
+    <li>Display an interactive map with <strong>flutter_map</strong> + OpenStreetMap</li>
+    <li>Place custom markers on a map for the user's location and points of interest</li>
+  </ul>
+</div>
+
+<!-- ── 1. How Location Works ─────────────────────────────────────────────── -->
+<h2>1. How Location Works on Mobile</h2>
+<p>
+  A mobile device can determine its position using three different systems.
+  The OS combines all available sources automatically:
+</p>
+
+<div class="diagram">┌─────────────────────────────────────────────────────────┐
+│              HOW THE DEVICE FINDS ITS POSITION          │
+├──────────────────┬──────────────────┬───────────────────┤
+│       GPS        │   WiFi / Cell    │    Fused API      │
+├──────────────────┼──────────────────┼───────────────────┤
+│ Satellite signal │ Router + tower   │ OS combines all   │
+│ Outdoor only     │ Indoor works     │ best of both      │
+│ ~3 m accuracy   │ ~50–200 m        │ Dynamic trade-off │
+│ High battery     │ Low battery      │ Balanced          │
+└──────────────────┴──────────────────┴───────────────────┘
+  Your app asks the OS → OS returns the best available fix</div>
+
+<div class="two-col">
+  <div class="col">
+    <h4>Coarse Location</h4>
+    <p>Uses WiFi and cell towers. Accuracy ~50–200 m. Lower battery use. Good for showing a city-level map.</p>
+  </div>
+  <div class="col">
+    <h4>Fine Location</h4>
+    <p>Uses GPS chip. Accuracy ~3–10 m. Higher battery use. Required for navigation or pin-drop accuracy.</p>
+  </div>
+</div>
+
+<!-- ── 2. Permissions ─────────────────────────────────────────────────────── -->
+<h2>2. Location Permissions</h2>
+<p>
+  Location is sensitive data. The OS requires your app to declare the permission
+  in its config file <em>and</em> ask the user at runtime.
+</p>
+
+<h3>Android — AndroidManifest.xml</h3>
+<pre><span class="cm">&lt;!-- Both permissions must be listed --&gt;</span>
+&lt;<span class="kw">uses-permission</span> android:name=<span class="st">"android.permission.ACCESS_COARSE_LOCATION"</span>/&gt;
+&lt;<span class="kw">uses-permission</span> android:name=<span class="st">"android.permission.ACCESS_FINE_LOCATION"</span>/&gt;</pre>
+
+<div class="warn">
+  Declaring the permission in the manifest is only step 1. You must still
+  <strong>request it at runtime</strong> with <code>Geolocator.requestPermission()</code>.
+  Without the runtime request the permission is never granted, even if it is in the manifest.
+</div>
+
+<h3>Permission States (LocationPermission enum)</h3>
+<table>
+  <tr><th>State</th><th>Meaning</th><th>What to do</th></tr>
+  <tr><td><code>denied</code></td><td>Not asked yet or tapped Deny once</td><td>Call requestPermission()</td></tr>
+  <tr><td><code>whileInUse</code></td><td>Granted while the app is open</td><td>Proceed ✅</td></tr>
+  <tr><td><code>always</code></td><td>Granted even in background</td><td>Proceed ✅</td></tr>
+  <tr><td><code>deniedForever</code></td><td>User tapped "Don't ask again"</td><td>Open app settings</td></tr>
+</table>
+
+<!-- ── 3. Packages ────────────────────────────────────────────────────────── -->
+<h2>3. Packages Used</h2>
+
+<div class="two-col">
+  <div class="col">
+    <h4>geolocator</h4>
+    <p>Reads GPS / network location. Handles permission requests. Works on Android and iOS.</p>
+    <code>geolocator: ^13.0.0</code>
+  </div>
+  <div class="col">
+    <h4>flutter_map + latlong2</h4>
+    <p>Renders an interactive map using free OpenStreetMap tiles. No API key or billing required.</p>
+    <code>flutter_map: ^7.0.0<br>latlong2: ^0.9.0</code>
+  </div>
+</div>
+
+<div class="info">
+  We deliberately chose <strong>flutter_map + OpenStreetMap</strong> over Google Maps.
+  Google Maps requires a billing-enabled API key, which is complex to set up in a classroom.
+  OpenStreetMap is completely free and the flutter_map API is very similar.
+</div>
+
+<pre><span class="cm"># pubspec.yaml</span>
+<span class="kw">dependencies</span>:
+  <span class="fn">geolocator</span>: ^<span class="num">13.0.0</span>
+  <span class="fn">flutter_map</span>: ^<span class="num">7.0.0</span>
+  <span class="fn">latlong2</span>: ^<span class="num">0.9.0</span></pre>
+
+<!-- ── 4. Getting Location ─────────────────────────────────────────────────── -->
+<h2>4. Getting the Device Location (Step by Step)</h2>
+<p>There are four steps every location-based app must follow:</p>
+
+<div class="diagram">  Step 1: Is GPS hardware enabled on the device?
+            └─ No  → show "Please enable GPS" message
+            └─ Yes ↓
+
+  Step 2: Do we already have permission?
+            └─ denied → Step 3
+            └─ granted → Step 4
+            └─ deniedForever → show "Go to Settings" message
+
+  Step 3: Ask the user (dialog pops up)
+            └─ Denied again → show error
+            └─ Granted → Step 4
+
+  Step 4: Call getCurrentPosition()
+            └─ Returns Position(latitude, longitude, accuracy, …)</div>
+
+<h3>Code — complete location loading function</h3>
+<pre><span class="kw">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">_loadLocation</span>() <span class="kw">async</span> {
+  <span class="cm">// Step 1 — is the GPS hardware turned on?</span>
+  <span class="kw">final</span> serviceEnabled = <span class="kw">await</span> <span class="cl">Geolocator</span>.<span class="fn">isLocationServiceEnabled</span>();
+  <span class="kw">if</span> (!serviceEnabled) {
+    <span class="fn">setState</span>(() =&gt; _error = <span class="st">'GPS is disabled. Enable it in device settings.'</span>);
+    <span class="kw">return</span>;
+  }
+
+  <span class="cm">// Step 2 — check current permission status</span>
+  <span class="cl">LocationPermission</span> permission = <span class="kw">await</span> <span class="cl">Geolocator</span>.<span class="fn">checkPermission</span>();
+
+  <span class="cm">// Step 3 — ask if not granted yet</span>
+  <span class="kw">if</span> (permission == <span class="cl">LocationPermission</span>.denied) {
+    permission = <span class="kw">await</span> <span class="cl">Geolocator</span>.<span class="fn">requestPermission</span>();
+    <span class="kw">if</span> (permission == <span class="cl">LocationPermission</span>.denied) {
+      <span class="fn">setState</span>(() =&gt; _error = <span class="st">'Permission denied.'</span>);
+      <span class="kw">return</span>;
+    }
+  }
+
+  <span class="kw">if</span> (permission == <span class="cl">LocationPermission</span>.deniedForever) {
+    <span class="fn">setState</span>(() =&gt; _error = <span class="st">'Permission permanently denied. Go to App Settings.'</span>);
+    <span class="kw">return</span>;
+  }
+
+  <span class="cm">// Step 4 — actually read the GPS coordinates</span>
+  <span class="kw">final</span> position = <span class="kw">await</span> <span class="cl">Geolocator</span>.<span class="fn">getCurrentPosition</span>(
+    locationSettings: <span class="kw">const</span> <span class="cl">LocationSettings</span>(
+      accuracy: <span class="cl">LocationAccuracy</span>.high,  <span class="cm">// GPS chip</span>
+    ),
+  );
+
+  <span class="fn">setState</span>(() =&gt; _position = position);
+  <span class="cm">// position.latitude, position.longitude, position.accuracy</span>
+}</pre>
+
+<!-- ── 5. Showing the Map ───────────────────────────────────────────────────── -->
+<h2>5. Showing the Map with flutter_map</h2>
+
+<h3>Core Concepts</h3>
+<table>
+  <tr><th>Concept</th><th>What it does</th></tr>
+  <tr><td><code>FlutterMap</code></td><td>The main map widget. Takes MapOptions and a list of layers.</td></tr>
+  <tr><td><code>MapOptions</code></td><td>Sets the initial center coordinate and zoom level.</td></tr>
+  <tr><td><code>TileLayer</code></td><td>Downloads and displays map image tiles from a tile server.</td></tr>
+  <tr><td><code>MarkerLayer</code></td><td>Places interactive widgets (pins) at specific coordinates.</td></tr>
+  <tr><td><code>LatLng</code></td><td>A coordinate: <code>LatLng(latitude, longitude)</code>.</td></tr>
+</table>
+
+<h3>Zoom Levels</h3>
+<table>
+  <tr><th>Zoom</th><th>What you see</th></tr>
+  <tr><td>3–5</td><td>Continent level</td></tr>
+  <tr><td>8–10</td><td>City level</td></tr>
+  <tr><td>13–15</td><td>Neighbourhood level ← our app uses 14</td></tr>
+  <tr><td>17–18</td><td>Street / building level</td></tr>
+</table>
+
+<h3>Code — FlutterMap widget</h3>
+<pre><span class="cl">FlutterMap</span>(
+  options: <span class="cl">MapOptions</span>(
+    initialCenter: <span class="cl">LatLng</span>(userLat, userLng),
+    initialZoom: <span class="num">14</span>,
+  ),
+  children: [
+    <span class="cm">// Layer 1 — the map tiles (OpenStreetMap)</span>
+    <span class="cl">TileLayer</span>(
+      urlTemplate: <span class="st">'https://tile.openstreetmap.org/{z}/{x}/{y}.png'</span>,
+      userAgentPackageName: <span class="st">'com.example.myapp'</span>,
+    ),
+
+    <span class="cm">// Layer 2 — markers drawn on top of the tiles</span>
+    <span class="cl">MarkerLayer</span>(
+      markers: [
+        <span class="cl">Marker</span>(
+          point: <span class="cl">LatLng</span>(userLat, userLng),
+          width: <span class="num">48</span>,
+          height: <span class="num">48</span>,
+          child: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.my_location, color: <span class="cl">Colors</span>.blue, size: <span class="num">40</span>),
+        ),
+      ],
+    ),
+  ],
+)</pre>
+
+<div class="tip">
+  <strong>Layers are drawn in order.</strong> Always put <code>TileLayer</code> first (the base map),
+  then <code>MarkerLayer</code> on top. Otherwise pins will be hidden under the map tiles.
+</div>
+
+<!-- ── 6. Full Screen Walkthrough ─────────────────────────────────────────── -->
+<h2>6. Full MapScreen Walkthrough</h2>
+<p>
+  The screen has three possible states — just like our product list screen had
+  loading / error / data states. This is a recurring Flutter pattern.
+</p>
+
+<div class="diagram">  MapScreen states
+  ─────────────────────────────────────────────────────────
+  _isLoading == true        → CircularProgressIndicator
+  _errorMessage != null     → Error card + "Try Again" button
+  _position != null         → FlutterMap with markers</div>
+
+<pre><span class="kw">class</span> <span class="cl">_MapScreenState</span> <span class="kw">extends</span> <span class="cl">State</span>&lt;<span class="cl">MapScreen</span>&gt; {
+  <span class="cl">Position</span>? _position;        <span class="cm">// null while loading</span>
+  <span class="kw">bool</span> _isLoading = <span class="kw">true</span>;
+  <span class="cl">String</span>? _errorMessage;
+  <span class="cl">List</span>&lt;<span class="cl">_Store</span>&gt; _stores = [];  <span class="cm">// fake nearby stores</span>
+
+  <span class="kw">@override</span>
+  <span class="kw">void</span> <span class="fn">initState</span>() {
+    <span class="kw">super</span>.<span class="fn">initState</span>();
+    <span class="fn">_loadLocation</span>();  <span class="cm">// start the permission + GPS flow on screen open</span>
+  }
+
+  <span class="kw">@override</span>
+  <span class="cl">Widget</span> <span class="fn">build</span>(<span class="cl">BuildContext</span> context) {
+    <span class="kw">if</span> (_isLoading)        <span class="kw">return</span> <span class="fn">_loadingWidget</span>();
+    <span class="kw">if</span> (_errorMessage != <span class="kw">null</span>) <span class="kw">return</span> <span class="fn">_errorWidget</span>();
+    <span class="kw">return</span> <span class="fn">_mapWidget</span>();  <span class="cm">// show map only when we have coordinates</span>
+  }
+}</pre>
+
+<!-- ── 7. Multiple Markers ─────────────────────────────────────────────────── -->
+<h2>7. Placing Multiple Markers</h2>
+<p>
+  We can show as many markers as we want. The spread operator (<code>...</code>)
+  converts a list of stores into individual Marker objects inline.
+</p>
+
+<pre><span class="cm">// A simple data class for a store</span>
+<span class="kw">class</span> <span class="cl">_Store</span> {
+  <span class="kw">final</span> <span class="cl">String</span> name;
+  <span class="kw">final</span> <span class="cl">LatLng</span> location;
+  <span class="kw">const</span> <span class="cl">_Store</span>(<span class="kw">this</span>.name, <span class="kw">this</span>.location);
+}
+
+<span class="cm">// Building fake store positions relative to user</span>
+<span class="kw">final</span> lat = position.latitude;
+<span class="kw">final</span> lng = position.longitude;
+<span class="kw">final</span> stores = [
+  <span class="cl">_Store</span>(<span class="st">'Store A'</span>, <span class="cl">LatLng</span>(lat + <span class="num">0.003</span>, lng + <span class="num">0.004</span>)),
+  <span class="cl">_Store</span>(<span class="st">'Store B'</span>, <span class="cl">LatLng</span>(lat - <span class="num">0.005</span>, lng + <span class="num">0.002</span>)),
+  <span class="cl">_Store</span>(<span class="st">'Store C'</span>, <span class="cl">LatLng</span>(lat + <span class="num">0.001</span>, lng - <span class="num">0.006</span>)),
+];
+
+<span class="cm">// Inside MarkerLayer, spread the store list into markers</span>
+<span class="cl">MarkerLayer</span>(
+  markers: [
+    userMarker,        <span class="cm">// user location pin</span>
+    ...stores.<span class="fn">map</span>((s) =&gt; <span class="cl">Marker</span>(
+      point: s.location,
+      child: <span class="cl">GestureDetector</span>(
+        <span class="cm">// Tap a store pin to see its name</span>
+        onTap: () =&gt; <span class="fn">showSnackBar</span>(s.name),
+        child: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.store, color: <span class="cl">Colors</span>.red),
+      ),
+    )),
+  ],
+)</pre>
+
+<!-- ── 8. Architecture Summary ──────────────────────────────────────────────── -->
+<h2>8. Architecture Summary</h2>
+
+<div class="diagram">  User opens "Stores" tab
+        │
+        ▼
+  MapScreen.initState()
+        │
+        ▼
+  _loadLocation() [async]
+        │
+        ├─ Geolocator.isLocationServiceEnabled()
+        ├─ Geolocator.checkPermission()
+        ├─ Geolocator.requestPermission()   ← dialog shown to user
+        └─ Geolocator.getCurrentPosition()
+                │
+                ▼
+          setState(_position = result)
+                │
+                ▼
+          build() sees _position != null
+                │
+                ▼
+          FlutterMap renders
+          TileLayer (downloads OpenStreetMap tiles)
+          MarkerLayer (user pin + store pins)</div>
+
+<!-- ── 9. Common Mistakes ──────────────────────────────────────────────────── -->
+<h2>9. Common Mistakes</h2>
+
+<table>
+  <tr><th>Mistake</th><th>Fix</th></tr>
+  <tr><td>Only adding permission in manifest, not requesting at runtime</td><td>Always call <code>requestPermission()</code> — the manifest alone is not enough</td></tr>
+  <tr><td>Not checking <code>isLocationServiceEnabled()</code> first</td><td>GPS may be off even if permission is granted</td></tr>
+  <tr><td>Calling <code>getCurrentPosition()</code> without <code>await</code></td><td>Always <code>await</code> it — it returns a <code>Future</code></td></tr>
+  <tr><td>Putting <code>MarkerLayer</code> before <code>TileLayer</code></td><td>Layers paint in order — tiles must be first</td></tr>
+  <tr><td>Forgetting <code>userAgentPackageName</code> in TileLayer</td><td>OpenStreetMap requires this to identify your app; without it tiles may be blocked</td></tr>
+  <tr><td>Using <code>LocationAccuracy.high</code> all the time</td><td>Use <code>LocationAccuracy.low</code> for non-navigation use cases — saves battery</td></tr>
+</table>
+
+<!-- ── Practice ───────────────────────────────────────────────────────────── -->
+<div class="practice">
+  <h2>Practice Tasks</h2>
+  <ol>
+    <li>Run the app and open the "Stores" tab — you should see a permission dialog. Allow location and verify the map centers on your position.</li>
+    <li>Tap one of the red store markers and confirm the snack bar shows its name.</li>
+    <li>Add a 4th fake store marker with a custom color (e.g. <code>Colors.green</code>) and a different icon.</li>
+    <li>Add a floating action button that, when tapped, calls <code>_loadLocation()</code> again to re-center the map on the current position.</li>
+    <li><strong>Challenge:</strong> Show the user's latitude and longitude in a bottom card on the map screen (e.g. "Lat: 33.72 · Lng: 73.04").</li>
+    <li><strong>Challenge:</strong> Change <code>LocationAccuracy.high</code> to <code>LocationAccuracy.low</code>, run the app, and observe the difference in the accuracy badge.</li>
+  </ol>
+</div>
+
+</main>
+</body>
+</html>

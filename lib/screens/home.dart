@@ -5,6 +5,7 @@ import 'package:flutter_application_2/models/product.dart';
 import 'package:flutter_application_2/screens/cart_screen.dart';
 import 'package:flutter_application_2/screens/profile.dart';
 import 'package:flutter_application_2/screens/search_screen.dart';
+import 'package:flutter_application_2/screens/map_screen.dart';
 import 'package:flutter_application_2/screens/product_detail_screen.dart';
 import 'package:flutter_application_2/services/product_service.dart';
 
@@ -18,12 +19,13 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   int _currentIndex = 0;
 
-  final List<String> _titles = ['Home', 'Search', 'Cart', 'Profile'];
+  final List<String> _titles = ['Home', 'Search', 'Cart', 'Stores', 'Profile'];
 
   final List<Widget> _screens = [
     const _HomeContent(),
     const SearchScreen(),
     const CartScreen(),
+    const MapScreen(),   // NEW (Lecture 21)
     const ProfileScreen(),
   ];
 

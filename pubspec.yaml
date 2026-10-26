@@ -41,6 +41,9 @@ dependencies:
   path: ^1.9.0                       # Helps build the database file path (used by sqflite)
   flutter_local_notifications: ^18.0.0  # Local notifications (Lecture 20)
   timezone: ^0.9.0                   # Required for scheduled notifications (Lecture 20)
+  geolocator: ^13.0.0               # GPS / device location (Lecture 21)
+  flutter_map: ^7.0.0               # Map display using OpenStreetMap tiles (Lecture 21)
+  latlong2: ^0.9.0                  # LatLng coordinate type used by flutter_map (Lecture 21)
 
 dev_dependencies:
   flutter_test:
