@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lecture 22 – Camera &amp; Image Picker</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #222; line-height: 1.7; }
+  header { background: linear-gradient(135deg, #e65100, #ff6f00); color: #fff; padding: 40px 32px 32px; }
+  header h1 { font-size: 2rem; margin-bottom: 6px; }
+  header p  { font-size: 1.05rem; opacity: .85; }
+  .badge { display:inline-block; background:rgba(255,255,255,.2); border-radius:20px; padding:3px 12px; font-size:.8rem; margin-top:10px; }
+  main { max-width: 900px; margin: 32px auto; padding: 0 20px 60px; }
+
+  .objectives { background:#fff3e0; border-left:5px solid #ff6f00; border-radius:8px; padding:20px 24px; margin-bottom:32px; }
+  .objectives h2 { color:#e65100; margin-bottom:10px; }
+  .objectives ul { padding-left:20px; }
+  .objectives li { margin-bottom:5px; }
+
+  h2 { font-size:1.4rem; color:#e65100; margin:36px 0 12px; border-bottom:2px solid #ffe0b2; padding-bottom:6px; }
+  h3 { font-size:1.1rem; color:#bf360c; margin:22px 0 8px; }
+  p  { margin-bottom:12px; }
+
+  pre { background:#1e1e2e; color:#cdd6f4; border-radius:10px; padding:20px; overflow-x:auto; font-size:.88rem; line-height:1.6; margin:14px 0 20px; }
+  .kw  { color:#cba6f7; font-weight:bold; }
+  .cl  { color:#89dceb; }
+  .st  { color:#a6e3a1; }
+  .cm  { color:#6c7086; font-style:italic; }
+  .num { color:#fab387; }
+  .fn  { color:#89b4fa; }
+
+  .tip  { background:#e8f5e9; border-left:4px solid #43a047; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .warn { background:#fff8e1; border-left:4px solid #ffa000; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .info { background:#e3f2fd; border-left:4px solid #1e88e5; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .tip::before  { content:'✅ '; font-weight:bold; }
+  .warn::before { content:'⚠️ '; font-weight:bold; }
+  .info::before { content:'ℹ️ '; font-weight:bold; }
+
+  .diagram { background:#fff; border:2px dashed #ffcc80; border-radius:10px; padding:20px; margin:16px 0; font-family:monospace; font-size:.88rem; white-space:pre; overflow-x:auto; }
+
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+  .col { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  .col h4 { color:#e65100; margin-bottom:8px; }
+
+  table { width:100%; border-collapse:collapse; margin:16px 0; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.07); }
+  th { background:#ff6f00; color:#fff; padding:10px 14px; text-align:left; font-size:.9rem; }
+  td { padding:10px 14px; border-bottom:1px solid #ffe0b2; font-size:.9rem; }
+  tr:last-child td { border-bottom:none; }
+  tr:nth-child(even) td { background:#fff8f0; }
+
+  .practice { background:#fce4ec; border-left:5px solid #e91e63; border-radius:8px; padding:20px 24px; margin-top:32px; }
+  .practice h2 { color:#c2185b; border:none; margin-top:0; }
+  .practice ol { padding-left:20px; }
+  .practice li { margin-bottom:8px; }
+
+  @media(max-width:600px){ .two-col{ grid-template-columns:1fr; } header h1{ font-size:1.5rem; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lecture 22 – Camera &amp; Image Picker</h1>
+  <p>BS Computer Science · Mobile Application Development</p>
+  <span class="badge">Flutter · image_picker · File · SharedPreferences</span>
+</header>
+
+<main>
+
+<div class="objectives">
+  <h2>Learning Objectives</h2>
+  <ul>
+    <li>Understand the two image sources on a mobile device: <strong>camera</strong> and <strong>gallery</strong></li>
+    <li>Use the <strong>image_picker</strong> package to open either source</li>
+    <li>Work with <code>XFile</code> and <code>File</code> to read and display a picked image</li>
+    <li>Display a local file image using <code>FileImage</code> inside a <code>CircleAvatar</code></li>
+    <li>Persist the chosen photo path using <strong>SharedPreferences</strong> so it survives app restarts</li>
+    <li>Build a reusable bottom sheet UI for source selection</li>
+  </ul>
+</div>
+
+<!-- ── 1. Image Sources ────────────────────────────────────────────────────── -->
+<h2>1. Two Image Sources</h2>
+<p>
+  Every mobile app that lets users choose a photo must answer one question first:
+  <em>where does the photo come from?</em> There are exactly two sources:
+</p>
+
+<div class="two-col">
+  <div class="col">
+    <h4>Camera — <code>ImageSource.camera</code></h4>
+    <p>Opens the device camera app. The user takes a new photo right now. The photo is saved to a temporary file and returned to your app.</p>
+    <p><strong>Requires:</strong> CAMERA permission in AndroidManifest.</p>
+  </div>
+  <div class="col">
+    <h4>Gallery — <code>ImageSource.gallery</code></h4>
+    <p>Opens the device photo library. The user picks an existing photo. On Android 13+ this uses the system Photo Picker — <em>no extra permission needed</em>.</p>
+    <p><strong>Requires:</strong> Nothing extra on modern Android.</p>
+  </div>
+</div>
+
+<!-- ── 2. The image_picker Package ───────────────────────────────────────── -->
+<h2>2. The image_picker Package</h2>
+<p>
+  <code>image_picker</code> is the official Flutter plugin for accessing the camera
+  and photo library. It wraps the native camera/gallery UI so you do not have to
+  write any platform-specific code yourself.
+</p>
+
+<pre><span class="cm"># pubspec.yaml</span>
+<span class="kw">dependencies</span>:
+  <span class="fn">image_picker</span>: ^<span class="num">1.1.2</span></pre>
+
+<pre><span class="cm"># AndroidManifest.xml — add inside &lt;manifest&gt;</span>
+&lt;<span class="kw">uses-permission</span> android:name=<span class="st">"android.permission.CAMERA"</span>/&gt;</pre>
+
+<h3>Key Classes</h3>
+<table>
+  <tr><th>Class / Type</th><th>What it is</th></tr>
+  <tr><td><code>ImagePicker</code></td><td>The main class. Call <code>.pickImage()</code> on it.</td></tr>
+  <tr><td><code>ImageSource</code></td><td>An enum: <code>.camera</code> or <code>.gallery</code></td></tr>
+  <tr><td><code>XFile</code></td><td>The result. A cross-platform file wrapper. Use <code>.path</code> to get the file path string.</td></tr>
+  <tr><td><code>File</code> (dart:io)</td><td>Standard Dart file. Create from path: <code>File(xFile.path)</code>. Needed for <code>FileImage()</code>.</td></tr>
+  <tr><td><code>FileImage</code></td><td>An <code>ImageProvider</code> that loads from a local <code>File</code>. Used in <code>backgroundImage</code>.</td></tr>
+</table>
+
+<!-- ── 3. Picking an Image ────────────────────────────────────────────────── -->
+<h2>3. Picking an Image — Step by Step</h2>
+
+<div class="diagram">  User taps avatar
+        │
+        ▼
+  showModalBottomSheet  ← choose Camera or Gallery
+        │
+        ▼
+  ImagePicker().pickImage(source: ImageSource.camera / .gallery)
+        │
+        ├── User cancels → returns null → do nothing
+        │
+        └── User picks photo → returns XFile
+                │
+                ▼
+          File(xFile.path)  ← convert to dart:io File
+                │
+                ├── setState(_profileImage = file)  → UI updates immediately
+                │
+                └── SharedPreferences.setString(path)  → survives restart</div>
+
+<h3>Core picking function</h3>
+<pre><span class="kw">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">_pickImage</span>(<span class="cl">ImageSource</span> source) <span class="kw">async</span> {
+  <span class="cm">// pickImage() opens the OS camera or gallery UI and waits for the user.</span>
+  <span class="cm">// Returns null if the user cancels without picking anything.</span>
+  <span class="kw">final</span> <span class="cl">XFile</span>? picked = <span class="kw">await</span> <span class="cl">ImagePicker</span>().<span class="fn">pickImage</span>(
+    source: source,
+    imageQuality: <span class="num">80</span>,   <span class="cm">// compress to 80% — smaller file, good enough for avatar</span>
+    maxWidth: <span class="num">512</span>,      <span class="cm">// resize to 512px wide — no need for full resolution</span>
+  );
+
+  <span class="kw">if</span> (picked == <span class="kw">null</span>) <span class="kw">return</span>; <span class="cm">// user cancelled</span>
+
+  <span class="cm">// Save path so the image loads again after a restart</span>
+  <span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.<span class="fn">getInstance</span>();
+  <span class="kw">await</span> prefs.<span class="fn">setString</span>(<span class="st">'profile_image_path'</span>, picked.path);
+
+  <span class="cm">// Update state — triggers a rebuild that shows the new photo</span>
+  <span class="fn">setState</span>(() =&gt; _profileImage = <span class="cl">File</span>(picked.path));
+}</pre>
+
+<div class="info">
+  <code>imageQuality: 80</code> and <code>maxWidth: 512</code> are optional but recommended.
+  A full-resolution camera photo can be 10–20 MB. Compressing it to 512px / 80% quality
+  gives a file under 100 KB, which is more than enough for a small avatar circle.
+</div>
+
+<!-- ── 4. Displaying the Image ─────────────────────────────────────────────── -->
+<h2>4. Displaying a Local File Image</h2>
+<p>
+  Flutter provides three common image widgets. The choice depends on <em>where</em> the image comes from:
+</p>
+
+<table>
+  <tr><th>Widget / Provider</th><th>Source</th><th>Example</th></tr>
+  <tr><td><code>Image.network()</code></td><td>URL on the internet</td><td>Product thumbnails from API</td></tr>
+  <tr><td><code>Image.asset()</code></td><td>Bundled in your app's assets folder</td><td>Logo, placeholder images</td></tr>
+  <tr><td><code>Image.file()</code> / <code>FileImage()</code></td><td>A file on the device's storage</td><td>Camera photo, gallery pick ← our case</td></tr>
+</table>
+
+<h3>Using FileImage inside CircleAvatar</h3>
+<pre><span class="cl">CircleAvatar</span>(
+  radius: <span class="num">48</span>,
+  backgroundColor: primaryColor,
+
+  <span class="cm">// backgroundImage takes an ImageProvider, not a Widget.</span>
+  <span class="cm">// FileImage wraps a dart:io File into an ImageProvider.</span>
+  backgroundImage: _profileImage != <span class="kw">null</span>
+      ? <span class="cl">FileImage</span>(_profileImage!)   <span class="cm">// show picked photo</span>
+      : <span class="kw">null</span>,                        <span class="cm">// no image yet → show child instead</span>
+
+  <span class="cm">// child is only shown when backgroundImage is null</span>
+  child: _profileImage == <span class="kw">null</span>
+      ? <span class="cl">Text</span>(name[<span class="num">0</span>].toUpperCase(), style: <span class="cl">TextStyle</span>(fontSize: <span class="num">40</span>))
+      : <span class="kw">null</span>,
+)</pre>
+
+<div class="tip">
+  <code>backgroundImage</code> and <code>child</code> work together in <code>CircleAvatar</code>:
+  when <code>backgroundImage</code> is set, it fills the circle and <code>child</code> is ignored.
+  When it is null, <code>child</code> is shown instead. This makes the fallback-to-initials
+  pattern very clean.
+</div>
+
+<!-- ── 5. Camera Badge Overlay ─────────────────────────────────────────────── -->
+<h2>5. The Camera Badge Overlay (Stack)</h2>
+<p>
+  We use a <code>Stack</code> to place a small camera icon on top of the avatar.
+  This is a very common mobile UI pattern — you see it in WhatsApp, Instagram, etc.
+</p>
+
+<pre><span class="cl">Stack</span>(
+  children: [
+    <span class="cl">CircleAvatar</span>( ... ),   <span class="cm">// the main avatar — layer 1 (bottom)</span>
+
+    <span class="cm">// Camera badge — layer 2 (top)</span>
+    <span class="cl">Positioned</span>(
+      bottom: <span class="num">0</span>,
+      right: <span class="num">0</span>,
+      child: <span class="cl">Container</span>(
+        padding: <span class="kw">const</span> <span class="cl">EdgeInsets</span>.all(<span class="num">4</span>),
+        decoration: <span class="cl">BoxDecoration</span>(
+          color: primaryColor,
+          shape: <span class="cl">BoxShape</span>.circle,
+          border: <span class="cl">Border</span>.all(color: scaffoldBg, width: <span class="num">2</span>), <span class="cm">// white ring</span>
+        ),
+        child: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.camera_alt, size: <span class="num">16</span>, color: <span class="cl">Colors</span>.white),
+      ),
+    ),
+  ],
+)</pre>
+
+<p>
+  Wrap the whole <code>Stack</code> in a <code>GestureDetector</code> with
+  <code>onTap: _showImageSourceSheet</code> so tapping anywhere on the avatar opens the picker.
+</p>
+
+<!-- ── 6. Bottom Sheet for Source Selection ───────────────────────────────── -->
+<h2>6. Bottom Sheet for Source Selection</h2>
+<p>
+  A <strong>Modal Bottom Sheet</strong> slides up from the bottom of the screen —
+  the standard mobile UI pattern for "choose one of a few options".
+  We use <code>showModalBottomSheet()</code> which is built into Flutter.
+</p>
+
+<pre><span class="kw">void</span> <span class="fn">_showImageSourceSheet</span>() {
+  <span class="fn">showModalBottomSheet</span>(
+    context: context,
+    shape: <span class="kw">const</span> <span class="cl">RoundedRectangleBorder</span>(
+      borderRadius: <span class="cl">BorderRadius</span>.<span class="fn">vertical</span>(top: <span class="cl">Radius</span>.<span class="fn">circular</span>(<span class="num">16</span>)),
+    ),
+    builder: (ctx) =&gt; <span class="cl">Column</span>(
+      mainAxisSize: <span class="cl">MainAxisSize</span>.min, <span class="cm">// sheet is only as tall as its content</span>
+      children: [
+        <span class="cl">ListTile</span>(
+          leading: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.camera_alt),
+          title: <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Take a Photo'</span>),
+          onTap: () {
+            <span class="cl">Navigator</span>.<span class="fn">pop</span>(ctx); <span class="cm">// close the sheet first</span>
+            <span class="fn">_pickImage</span>(<span class="cl">ImageSource</span>.camera);
+          },
+        ),
+        <span class="cl">ListTile</span>(
+          leading: <span class="kw">const</span> <span class="cl">Icon</span>(<span class="cl">Icons</span>.photo_library),
+          title: <span class="kw">const</span> <span class="cl">Text</span>(<span class="st">'Choose from Gallery'</span>),
+          onTap: () {
+            <span class="cl">Navigator</span>.<span class="fn">pop</span>(ctx);
+            <span class="fn">_pickImage</span>(<span class="cl">ImageSource</span>.gallery);
+          },
+        ),
+      ],
+    ),
+  );
+}</pre>
+
+<div class="warn">
+  Always call <code>Navigator.pop(ctx)</code> to close the sheet <em>before</em>
+  calling <code>_pickImage()</code>. If you open the camera while the sheet is still
+  visible, the sheet will cover the camera UI on some devices.
+</div>
+
+<!-- ── 7. Persisting the Image ─────────────────────────────────────────────── -->
+<h2>7. Persisting the Image Across Restarts</h2>
+<p>
+  The file itself is already saved on the device (by the camera or gallery system).
+  All we need to remember is <em>the path</em> to that file.
+  We save the path as a string in <code>SharedPreferences</code> — the same technique
+  used in Lecture 14 for saving the dark mode preference.
+</p>
+
+<div class="diagram">  First launch:
+    _profileImage = null → show initials
+
+  User picks photo:
+    SharedPreferences.setString('profile_image_path', '/data/.../photo.jpg')
+    _profileImage = File('/data/.../photo.jpg') → show photo
+
+  App restarts:
+    initState → _loadProfileImage()
+    SharedPreferences.getString('profile_image_path') → '/data/.../photo.jpg'
+    File(path).existsSync() == true → _profileImage = File(path) → show photo</div>
+
+<pre><span class="cm">// Save on pick</span>
+<span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.<span class="fn">getInstance</span>();
+<span class="kw">await</span> prefs.<span class="fn">setString</span>(<span class="st">'profile_image_path'</span>, picked.path);
+
+<span class="cm">// Load on startup</span>
+<span class="kw">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">_loadProfileImage</span>() <span class="kw">async</span> {
+  <span class="kw">final</span> prefs = <span class="kw">await</span> <span class="cl">SharedPreferences</span>.<span class="fn">getInstance</span>();
+  <span class="kw">final</span> savedPath = prefs.<span class="fn">getString</span>(<span class="st">'profile_image_path'</span>);
+
+  <span class="cm">// Always verify the file still exists before using it!</span>
+  <span class="cm">// The file could be deleted by the OS to free storage.</span>
+  <span class="kw">if</span> (savedPath != <span class="kw">null</span> &amp;&amp; <span class="cl">File</span>(savedPath).<span class="fn">existsSync</span>()) {
+    <span class="fn">setState</span>(() =&gt; _profileImage = <span class="cl">File</span>(savedPath));
+  }
+}</pre>
+
+<!-- ── 8. Architecture Summary ─────────────────────────────────────────────── -->
+<h2>8. Architecture Summary</h2>
+
+<div class="diagram">  ProfileScreen
+  ─────────────────────────────────────────────────────────
+  State:
+    File? _profileImage   ← the currently displayed photo
+                            (null = show initials)
+
+  On init:
+    _loadProfileImage()   ← restore from SharedPreferences
+
+  On tap:
+    _showImageSourceSheet() → bottom sheet
+      "Take Photo"  → _pickImage(ImageSource.camera)
+      "Gallery"     → _pickImage(ImageSource.gallery)
+
+  _pickImage(source):
+    ImagePicker().pickImage() → XFile? (null if cancelled)
+    File(xFile.path)          → dart:io File
+    SharedPreferences         → save path string
+    setState()                → rebuild with FileImage(file)</div>
+
+<!-- ── 9. Common Mistakes ──────────────────────────────────────────────────── -->
+<h2>9. Common Mistakes</h2>
+<table>
+  <tr><th>Mistake</th><th>Fix</th></tr>
+  <tr><td>Not checking if <code>picked == null</code></td><td>Always null-check — user may cancel the picker</td></tr>
+  <tr><td>Using <code>Image.file()</code> in <code>backgroundImage</code></td><td><code>backgroundImage</code> needs an <code>ImageProvider</code>, not a Widget — use <code>FileImage(file)</code></td></tr>
+  <tr><td>Saving the XFile path and never checking if the file exists</td><td>Camera temp files can be deleted by the OS — call <code>File(path).existsSync()</code> before loading</td></tr>
+  <tr><td>Not calling <code>Navigator.pop()</code> before opening camera</td><td>Close the bottom sheet first, or the camera UI may appear behind it</td></tr>
+  <tr><td>Forgetting <code>import 'dart:io'</code></td><td><code>File</code> lives in <code>dart:io</code>, not in Flutter — always import it explicitly</td></tr>
+</table>
+
+<!-- ── Practice ───────────────────────────────────────────────────────────── -->
+<div class="practice">
+  <h2>Practice Tasks</h2>
+  <ol>
+    <li>Run the app, open the Profile tab, and tap the avatar — verify the bottom sheet appears with Camera and Gallery options.</li>
+    <li>Pick a photo from the gallery and confirm it appears in the avatar circle.</li>
+    <li>Restart the app and verify the photo is still shown (not reset to initials).</li>
+    <li>Add a third option to the bottom sheet: <strong>"Remove Photo"</strong> that resets the avatar back to initials and deletes the saved path from SharedPreferences.</li>
+    <li><strong>Challenge:</strong> Instead of a bottom sheet, show an <code>AlertDialog</code> with the same Camera / Gallery options.</li>
+    <li><strong>Challenge:</strong> Allow picking a <em>video</em> from the gallery using <code>ImagePicker().pickVideo(source: ImageSource.gallery)</code> and display the file path in a Text widget.</li>
+  </ol>
+</div>
+
+</main>
+</body>
+</html>

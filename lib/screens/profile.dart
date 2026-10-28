@@ -1,7 +1,10 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';           // NEW (Lecture 22)
+import 'package:shared_preferences/shared_preferences.dart'; // NEW (Lecture 22)
 import 'package:flutter_application_2/providers/auth_provider.dart';
-import 'package:flutter_application_2/providers/theme_provider.dart'; // NEW (Lecture 14)
+import 'package:flutter_application_2/providers/theme_provider.dart';
 import 'package:flutter_application_2/services/user_storage.dart';
 import 'package:flutter_application_2/screens/login_screen.dart';
 
@@ -17,10 +20,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String contact = '';
   String address = '';
 
+  // Lecture 22: holds the profile image chosen from camera or gallery
+  File? _profileImage;
+
+  // The key we use to persist the image path in SharedPreferences
+  static const String _imagePathKey = 'profile_image_path';
+
   @override
   void initState() {
     super.initState();
-    _loadUser(); // load profile info when the screen opens
+    _loadUser();          // load name/contact/address
+    _loadProfileImage();  // load saved profile photo (Lecture 22)
   }
 
   // Reads name/contact/address from local storage
@@ -31,6 +41,86 @@ class _ProfileScreenState extends State<ProfileScreen> {
       contact = data['contact']!;
       address = data['address']!;
     });
+  }
+
+  // ── Lecture 22: Image loading & picking ────────────────────────────────────
+
+  // Load the previously saved image path from SharedPreferences.
+  // If a file exists at that path, show it as the profile photo.
+  Future<void> _loadProfileImage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedPath = prefs.getString(_imagePathKey);
+    if (savedPath != null && File(savedPath).existsSync()) {
+      setState(() => _profileImage = File(savedPath));
+    }
+  }
+
+  // Open camera or gallery, let the user pick a photo, then save the path.
+  Future<void> _pickImage(ImageSource source) async {
+    // ImagePicker is the main class from the image_picker package.
+    // pickImage() opens the camera or gallery and returns an XFile
+    // (XFile = cross-platform file wrapper).
+    final XFile? picked = await ImagePicker().pickImage(
+      source: source,
+      imageQuality: 80,   // compress to 80% quality to save storage
+      maxWidth: 512,      // resize to max 512px wide — enough for an avatar
+    );
+
+    // User cancelled the picker (tapped back) — do nothing
+    if (picked == null) return;
+
+    // Save the file path so it survives app restarts
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_imagePathKey, picked.path);
+
+    // Rebuild the widget to show the new photo immediately
+    setState(() => _profileImage = File(picked.path));
+  }
+
+  // Show a bottom sheet asking the user where to get the photo from.
+  void _showImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // sheet height = content height
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text('Change Profile Photo',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take a Photo'),
+              onTap: () {
+                Navigator.pop(ctx); // close sheet first
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   // Called when the user taps Logout
@@ -90,24 +180,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar — uses first letter of name or email
+          // ── Lecture 22: Avatar with camera icon overlay ──────────────────
+          // GestureDetector makes the whole avatar tappable.
+          // Stack lets us draw the small camera badge on top of the avatar.
           Center(
-            child: CircleAvatar(
-              radius: 48,
-              backgroundColor: primaryColor, // was: Colors.orangeAccent
-              child: Text(
-                name.isNotEmpty
-                    ? name[0].toUpperCase()
-                    : email.isNotEmpty
-                        ? email[0].toUpperCase()
-                        : '?',
-                style: TextStyle(
-                  fontSize: 40,
-                  color: Theme.of(context).colorScheme.onPrimary, // was: Colors.white
-                ),
+            child: GestureDetector(
+              onTap: _showImageSourceSheet, // tap → bottom sheet
+              child: Stack(
+                children: [
+                  // The avatar circle — shows picked photo or initials
+                  CircleAvatar(
+                    radius: 48,
+                    backgroundColor: primaryColor,
+                    // If the user picked a photo, show it; otherwise show initials
+                    backgroundImage: _profileImage != null
+                        ? FileImage(_profileImage!)
+                        : null,
+                    child: _profileImage == null
+                        ? Text(
+                            name.isNotEmpty
+                                ? name[0].toUpperCase()
+                                : email.isNotEmpty
+                                    ? email[0].toUpperCase()
+                                    : '?',
+                            style: TextStyle(
+                              fontSize: 40,
+                              color: Theme.of(context).colorScheme.onPrimary,
+                            ),
+                          )
+                        : null, // hide text when image is showing
+                  ),
+
+                  // Small camera badge at the bottom-right of the avatar
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: primaryColor,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Theme.of(context).scaffoldBackgroundColor,
+                          width: 2,
+                        ),
+                      ),
+                      child: Icon(
+                        Icons.camera_alt,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onPrimary,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
+          // ─────────────────────────────────────────────────────────────────
           const SizedBox(height: 32),
 
           // Email (from auth)
