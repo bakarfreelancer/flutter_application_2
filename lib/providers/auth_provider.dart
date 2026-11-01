@@ -1,65 +1,52 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_2/services/user_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_application_2/services/firebase_service.dart';
 
-// AuthProvider is the "brain" of authentication.
-// It keeps track of whether the user is logged in or not,
-// and makes that information available to any screen in the app.
-// Just like CartProvider manages the cart, AuthProvider manages auth state.
+// AuthProvider — Lecture 23 (Firebase Auth)
+//
+// Previously (Lectures 05–13): stored a token string from the reqres.in API.
+// Now: listens to Firebase Auth's authStateChanges stream.
+//
+// The key difference:
+//   Before → we manually saved/loaded a token from SharedPreferences.
+//   Now    → Firebase handles token persistence automatically.
+//            We just listen to the stream and react to changes.
 class AuthProvider extends ChangeNotifier {
-  // Private fields — only this class can modify them
-  bool _isLoggedIn = false;
-  String _email = '';
-  String _token = '';
+  // The Firebase User object — null when logged out, non-null when logged in.
+  // All user info (email, uid) comes from here.
+  User? _firebaseUser;
 
-  // Public getters — any widget can read these
-  bool get isLoggedIn => _isLoggedIn;
-  String get email => _email;
-  String get token => _token;
+  bool get isLoggedIn => _firebaseUser != null;
+  String get email => _firebaseUser?.email ?? '';
 
-  // ─── CHECK SAVED TOKEN ────────────────────────────────────────────────────
-  // Called from SplashScreen on app startup.
-  // Looks for a previously saved token in SharedPreferences.
-  // If found, the user is considered already logged in.
-  Future<void> checkAuthStatus() async {
-    final token = await UserStorage.getToken();
-    final email = await UserStorage.getEmail();
+  // uid (unique ID) is the key used to identify this user in Firestore.
+  // Every Firebase user gets a unique uid automatically.
+  String get uid => _firebaseUser?.uid ?? '';
 
-    if (token.isNotEmpty) {
-      // Token exists → user was logged in before → restore their session
-      _token = token;
-      _email = email;
-      _isLoggedIn = true;
-      notifyListeners(); // update any listening widgets
-    }
+  AuthProvider() {
+    // authStateChanges is a stream — it fires:
+    //   - immediately with the current user (or null) on app start
+    //   - whenever the user signs in or out
+    // This replaces the old checkAuthStatus() + SharedPreferences approach.
+    FirebaseService.instance.authStateChanges.listen((user) {
+      _firebaseUser = user;
+      notifyListeners(); // rebuild any listening widgets
+    });
   }
 
-  // ─── LOGIN ────────────────────────────────────────────────────────────────
-  // Called after a successful API login response.
-  // Saves the token to storage and updates the state.
-  Future<void> login(String email, String token) async {
-    // Save to SharedPreferences so it persists after app restart
-    await UserStorage.saveToken(token: token, email: email);
-
-    // Update in-memory state
-    _token = token;
-    _email = email;
-    _isLoggedIn = true;
-
-    notifyListeners(); // 🔔 tell all listeners the user is now logged in
+  // Sign in with email and password.
+  // Returns null on success, or an error message string on failure.
+  // The caller (LoginScreen) shows the error in a SnackBar if non-null.
+  Future<String?> login(String email, String password) {
+    return FirebaseService.instance.signIn(email, password);
   }
 
-  // ─── LOGOUT ───────────────────────────────────────────────────────────────
-  // Called from the ProfileScreen logout button.
-  // Clears the token from storage and resets the state.
-  Future<void> logout() async {
-    // Remove token from SharedPreferences
-    await UserStorage.clearAuth();
-
-    // Reset in-memory state
-    _token = '';
-    _email = '';
-    _isLoggedIn = false;
-
-    notifyListeners(); // 🔔 tell all listeners the user is now logged out
+  // Register a new account.
+  Future<String?> register(String email, String password) {
+    return FirebaseService.instance.register(email, password);
   }
+
+  // Sign out. Firebase clears the cached token.
+  // authStateChanges will fire with null → isLoggedIn becomes false.
+  Future<void> logout() => FirebaseService.instance.signOut();
 }

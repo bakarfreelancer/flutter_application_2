@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lecture 23 – Firebase (Auth + Firestore)</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #222; line-height: 1.7; }
+  header { background: linear-gradient(135deg, #e65100, #ff6f00); color: #fff; padding: 40px 32px 32px; }
+  header h1 { font-size: 2rem; margin-bottom: 6px; }
+  header p  { font-size: 1.05rem; opacity: .85; }
+  .badge { display:inline-block; background:rgba(255,255,255,.2); border-radius:20px; padding:3px 12px; font-size:.8rem; margin-top:10px; margin-right:6px; }
+  main { max-width: 900px; margin: 32px auto; padding: 0 20px 60px; }
+
+  .objectives { background:#fff3e0; border-left:5px solid #ff6f00; border-radius:8px; padding:20px 24px; margin-bottom:32px; }
+  .objectives h2 { color:#e65100; margin-bottom:10px; }
+  .objectives ul { padding-left:20px; }
+  .objectives li { margin-bottom:5px; }
+
+  h2 { font-size:1.4rem; color:#e65100; margin:36px 0 12px; border-bottom:2px solid #ffe0b2; padding-bottom:6px; }
+  h3 { font-size:1.1rem; color:#bf360c; margin:22px 0 8px; }
+  p  { margin-bottom:12px; }
+
+  pre { background:#1e1e2e; color:#cdd6f4; border-radius:10px; padding:20px; overflow-x:auto; font-size:.88rem; line-height:1.6; margin:14px 0 20px; }
+  .kw  { color:#cba6f7; font-weight:bold; }
+  .cl  { color:#89dceb; }
+  .st  { color:#a6e3a1; }
+  .cm  { color:#6c7086; font-style:italic; }
+  .num { color:#fab387; }
+  .fn  { color:#89b4fa; }
+
+  .tip   { background:#e8f5e9; border-left:4px solid #43a047; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .warn  { background:#fff8e1; border-left:4px solid #ffa000; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .info  { background:#e3f2fd; border-left:4px solid #1e88e5; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .setup { background:#f3e5f5; border-left:4px solid #8e24aa; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .tip::before   { content:'✅ '; font-weight:bold; }
+  .warn::before  { content:'⚠️ '; font-weight:bold; }
+  .info::before  { content:'ℹ️ '; font-weight:bold; }
+  .setup::before { content:'🔧 '; font-weight:bold; }
+
+  .diagram { background:#fff; border:2px dashed #ffcc80; border-radius:10px; padding:20px; margin:16px 0; font-family:monospace; font-size:.88rem; white-space:pre; overflow-x:auto; }
+
+  .two-col { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+  .col { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  .col h4 { color:#e65100; margin-bottom:8px; }
+
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li { counter-increment: step; display:flex; gap:14px; margin-bottom:14px; align-items:flex-start; }
+  .steps li::before { content: counter(step); background:#ff6f00; color:#fff; border-radius:50%; width:28px; height:28px; min-width:28px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:.9rem; margin-top:2px; }
+
+  table { width:100%; border-collapse:collapse; margin:16px 0; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.07); }
+  th { background:#ff6f00; color:#fff; padding:10px 14px; text-align:left; font-size:.9rem; }
+  td { padding:10px 14px; border-bottom:1px solid #ffe0b2; font-size:.9rem; }
+  tr:last-child td { border-bottom:none; }
+  tr:nth-child(even) td { background:#fff8f0; }
+
+  .practice { background:#fce4ec; border-left:5px solid #e91e63; border-radius:8px; padding:20px 24px; margin-top:32px; }
+  .practice h2 { color:#c2185b; border:none; margin-top:0; }
+  .practice ol { padding-left:20px; }
+  .practice li { margin-bottom:8px; }
+
+  @media(max-width:600px){ .two-col{ grid-template-columns:1fr; } header h1{ font-size:1.5rem; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lecture 23 – Firebase: Auth &amp; Firestore</h1>
+  <p>BS Computer Science · Mobile Application Development</p>
+  <span class="badge">Firebase Auth</span>
+  <span class="badge">Cloud Firestore</span>
+  <span class="badge">Real-time Cloud Backend</span>
+</header>
+
+<main>
+
+<div class="objectives">
+  <h2>Learning Objectives</h2>
+  <ul>
+    <li>Understand what Firebase is and why it is used in mobile apps</li>
+    <li>Set up a Firebase project and connect it to a Flutter app</li>
+    <li>Replace a fake API login with real <strong>Firebase Authentication</strong></li>
+    <li>Understand the <code>authStateChanges</code> stream pattern</li>
+    <li>Read and write user data with <strong>Cloud Firestore</strong></li>
+    <li>Understand Firestore's data model: collections, documents, and fields</li>
+  </ul>
+</div>
+
+<!-- ── 1. What is Firebase? ─────────────────────────────────────────────────── -->
+<h2>1. What is Firebase?</h2>
+<p>
+  Firebase is Google's <strong>Backend-as-a-Service (BaaS)</strong> platform.
+  It gives mobile apps a ready-made backend — authentication, databases, storage,
+  analytics — without you having to build or host a server yourself.
+</p>
+
+<div class="two-col">
+  <div class="col">
+    <h4>Before Firebase</h4>
+    <p>You need to: set up a server, write REST APIs, manage a database, handle user sessions, store passwords securely, keep it running 24/7.</p>
+  </div>
+  <div class="col">
+    <h4>With Firebase</h4>
+    <p>Google handles all of that. You call <code>signInWithEmailAndPassword()</code> and Firebase does the rest — server, encryption, tokens, sessions.</p>
+  </div>
+</div>
+
+<h3>Firebase Products Used in This Lecture</h3>
+<table>
+  <tr><th>Product</th><th>What it does</th><th>Our use</th></tr>
+  <tr><td><strong>Firebase Auth</strong></td><td>User sign-up, login, logout, token management</td><td>Replace reqres.in fake login</td></tr>
+  <tr><td><strong>Cloud Firestore</strong></td><td>Cloud NoSQL database, real-time syncing</td><td>Save/load user profile data</td></tr>
+  <tr><td><strong>firebase_core</strong></td><td>Required base SDK — must initialize first</td><td>Called in <code>main()</code></td></tr>
+</table>
+
+<!-- ── 2. Project Setup ──────────────────────────────────────────────────────── -->
+<h2>2. Firebase Project Setup (Do This Once)</h2>
+<p>
+  Before writing any code, you must create a Firebase project and link it to your app.
+  This is a one-time setup process.
+</p>
+
+<ol class="steps">
+  <li>
+    <div>
+      <strong>Create a Firebase project</strong><br>
+      Go to <code>console.firebase.google.com</code> → click <em>Add project</em> → enter a name → Finish.
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Register your Android app</strong><br>
+      In the project console → click the Android icon → enter the package name:
+      <code>com.example.flutter_application_2</code> → click <em>Register app</em>.
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Download google-services.json</strong><br>
+      Click <em>Download google-services.json</em> → place the file at
+      <code>android/app/google-services.json</code>.<br>
+      <strong>This file is your app's identity card for Firebase. Never commit it to a public GitHub repository.</strong>
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Enable Email/Password Authentication</strong><br>
+      Firebase console → <em>Authentication</em> → <em>Sign-in method</em> → <em>Email/Password</em> → Enable → Save.
+    </div>
+  </li>
+  <li>
+    <div>
+      <strong>Create a Firestore database</strong><br>
+      Firebase console → <em>Firestore Database</em> → <em>Create database</em> → choose <em>Start in test mode</em> → pick a region → Done.
+    </div>
+  </li>
+</ol>
+
+<div class="warn">
+  The app will crash on startup with <em>"No Firebase App '[DEFAULT]' has been created"</em>
+  if <code>google-services.json</code> is missing from <code>android/app/</code>.
+  This is the most common Firebase setup mistake.
+</div>
+
+<!-- ── 3. pubspec + Gradle ──────────────────────────────────────────────────── -->
+<h2>3. Packages &amp; Gradle Changes</h2>
+
+<pre><span class="cm"># pubspec.yaml — add all three</span>
+<span class="kw">dependencies</span>:
+  <span class="fn">firebase_core</span>: ^<span class="num">3.0.0</span>      <span class="cm"># required base, always add first</span>
+  <span class="fn">firebase_auth</span>: ^<span class="num">5.0.0</span>      <span class="cm"># authentication</span>
+  <span class="fn">cloud_firestore</span>: ^<span class="num">5.0.0</span>    <span class="cm"># database</span></pre>
+
+<pre><span class="cm">// settings.gradle.kts — add Google Services plugin</span>
+plugins {
+  id(<span class="st">"com.google.gms.google-services"</span>) version <span class="st">"4.4.2"</span> apply <span class="kw">false</span>
+}
+
+<span class="cm">// app/build.gradle.kts — apply the plugin to the app module</span>
+plugins {
+  id(<span class="st">"com.google.gms.google-services"</span>)
+}</pre>
+
+<!-- ── 4. Initialize Firebase ──────────────────────────────────────────────── -->
+<h2>4. Initializing Firebase in main()</h2>
+<p>
+  Firebase must be initialized before <code>runApp()</code>.
+  This connects the SDK to your Firebase project using the config in
+  <code>google-services.json</code>.
+</p>
+
+<pre><span class="kw">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">main</span>() <span class="kw">async</span> {
+  <span class="cl">WidgetsFlutterBinding</span>.<span class="fn">ensureInitialized</span>();
+
+  <span class="cm">// Connect the app to Firebase using google-services.json</span>
+  <span class="kw">await</span> <span class="cl">Firebase</span>.<span class="fn">initializeApp</span>();
+
+  <span class="kw">await</span> <span class="cl">NotificationService</span>.instance.<span class="fn">init</span>();
+
+  <span class="fn">runApp</span>( ... );
+}</pre>
+
+<!-- ── 5. Firebase Auth ─────────────────────────────────────────────────────── -->
+<h2>5. Firebase Authentication</h2>
+
+<h3>How it Works</h3>
+<div class="diagram">  Your app                    Firebase servers
+  ──────────────────────────────────────────────────────
+  signInWithEmailAndPassword()
+       │
+       └─────────────────────────────────────────────►
+                                                 Checks email + password
+                                                 Returns a secure token
+       ◄─────────────────────────────────────────────┘
+       │
+  Firebase SDK stores token on device automatically
+  (you never touch SharedPreferences for auth again)
+       │
+  authStateChanges stream fires: User object (non-null)
+       │
+  App rebuilds → user is logged in</div>
+
+<h3>Key Methods</h3>
+<table>
+  <tr><th>Method</th><th>What it does</th></tr>
+  <tr><td><code>signInWithEmailAndPassword(email, password)</code></td><td>Sign in an existing user</td></tr>
+  <tr><td><code>createUserWithEmailAndPassword(email, password)</code></td><td>Register a new user</td></tr>
+  <tr><td><code>signOut()</code></td><td>Sign out the current user</td></tr>
+  <tr><td><code>currentUser</code></td><td>The currently signed-in User object (or null)</td></tr>
+  <tr><td><code>authStateChanges()</code></td><td>Stream&lt;User?&gt; — fires on every sign-in/sign-out</td></tr>
+</table>
+
+<h3>The authStateChanges Stream</h3>
+<p>
+  This is the key concept of Firebase Auth. Instead of checking SharedPreferences
+  on startup, you simply <em>listen</em> to a stream. Firebase fires an event
+  automatically whenever the auth state changes.
+</p>
+
+<pre><span class="kw">class</span> <span class="cl">AuthProvider</span> <span class="kw">extends</span> <span class="cl">ChangeNotifier</span> {
+  <span class="cl">User</span>? _firebaseUser;
+
+  <span class="kw">bool</span> <span class="kw">get</span> isLoggedIn =&gt; _firebaseUser != <span class="kw">null</span>;
+  <span class="cl">String</span> <span class="kw">get</span> email =&gt; _firebaseUser?.email ?? <span class="st">''</span>;
+  <span class="cl">String</span> <span class="kw">get</span> uid   =&gt; _firebaseUser?.uid   ?? <span class="st">''</span>;
+
+  <span class="cl">AuthProvider</span>() {
+    <span class="cm">// Listen once — Firebase calls back whenever sign-in state changes.</span>
+    <span class="cm">// On app start: fires immediately with the cached user (or null).</span>
+    <span class="cm">// On login:     fires with the User object.</span>
+    <span class="cm">// On logout:    fires with null.</span>
+    <span class="cl">FirebaseAuth</span>.instance.<span class="fn">authStateChanges</span>().<span class="fn">listen</span>((user) {
+      _firebaseUser = user;
+      <span class="fn">notifyListeners</span>();
+    });
+  }
+
+  <span class="kw">Future</span>&lt;<span class="cl">String</span>?&gt; <span class="fn">login</span>(<span class="cl">String</span> email, <span class="cl">String</span> password) <span class="kw">async</span> {
+    <span class="kw">try</span> {
+      <span class="kw">await</span> <span class="cl">FirebaseAuth</span>.instance.<span class="fn">signInWithEmailAndPassword</span>(
+        email: email, password: password,
+      );
+      <span class="kw">return null</span>; <span class="cm">// null = success</span>
+    } <span class="kw">on</span> <span class="cl">FirebaseAuthException</span> <span class="kw">catch</span> (e) {
+      <span class="kw">return</span> e.message; <span class="cm">// show this in a SnackBar</span>
+    }
+  }
+
+  <span class="kw">Future</span>&lt;<span class="kw">void</span>&gt; <span class="fn">logout</span>() =&gt; <span class="cl">FirebaseAuth</span>.instance.<span class="fn">signOut</span>();
+}</pre>
+
+<div class="tip">
+  <strong>uid</strong> (user ID) is a unique string Firebase assigns to every user automatically.
+  It never changes, even if the user updates their email.
+  Always use <code>uid</code> as the key when storing user data — never the email address.
+</div>
+
+<!-- ── 6. Firestore ─────────────────────────────────────────────────────────── -->
+<h2>6. Cloud Firestore</h2>
+
+<h3>Data Model</h3>
+<p>
+  Firestore is a NoSQL database. Data is organised in a hierarchy of three levels:
+</p>
+
+<div class="diagram">  Firestore
+  └── users  (Collection — like a table)
+      ├── uid_abc123  (Document — like a row, identified by uid)
+      │   ├── name:      "Alice"
+      │   ├── contact:   "+1 555 0100"
+      │   ├── address:   "123 Main St"
+      │   └── updatedAt: Nov 1 2026
+      │
+      └── uid_def456  (Document — another user)
+          ├── name:      "Bob"
+          └── ...</div>
+
+<h3>Comparison: Firestore vs SQLite</h3>
+<table>
+  <tr><th></th><th>SQLite (Lecture 19)</th><th>Cloud Firestore</th></tr>
+  <tr><td>Location</td><td>On the device only</td><td>Google's cloud servers</td></tr>
+  <tr><td>Access from other devices</td><td>No</td><td>Yes — same data everywhere</td></tr>
+  <tr><td>Real-time sync</td><td>No</td><td>Yes (snapshots stream)</td></tr>
+  <tr><td>Works offline</td><td>Always</td><td>Yes, with automatic sync on reconnect</td></tr>
+  <tr><td>Query language</td><td>SQL</td><td>Chained method calls</td></tr>
+</table>
+
+<h3>Writing to Firestore</h3>
+<pre><span class="cm">// Write (or update) a document at: users/{uid}</span>
+<span class="kw">await</span> <span class="cl">FirebaseFirestore</span>.instance
+    .<span class="fn">collection</span>(<span class="st">'users'</span>)    <span class="cm">// select the collection</span>
+    .<span class="fn">doc</span>(uid)               <span class="cm">// select (or create) the document</span>
+    .<span class="fn">set</span>(
+      {
+        <span class="st">'name'</span>:      name,
+        <span class="st">'contact'</span>:   contact,
+        <span class="st">'address'</span>:   address,
+        <span class="st">'updatedAt'</span>: <span class="cl">FieldValue</span>.serverTimestamp(),
+      },
+      <span class="cl">SetOptions</span>(merge: <span class="kw">true</span>), <span class="cm">// merge: don't wipe fields we didn't include</span>
+    );</pre>
+
+<h3>Reading from Firestore</h3>
+<pre><span class="cm">// Read the document for this user</span>
+<span class="kw">final</span> doc = <span class="kw">await</span> <span class="cl">FirebaseFirestore</span>.instance
+    .<span class="fn">collection</span>(<span class="st">'users'</span>)
+    .<span class="fn">doc</span>(uid)
+    .<span class="fn">get</span>();
+
+<span class="kw">if</span> (doc.exists) {
+  <span class="kw">final</span> data = doc.data()!;          <span class="cm">// Map&lt;String, dynamic&gt;</span>
+  <span class="kw">final</span> name = data[<span class="st">'name'</span>] <span class="kw">as</span> <span class="cl">String</span>;
+}</pre>
+
+<!-- ── 7. Architecture Comparison ──────────────────────────────────────────── -->
+<h2>7. Before vs After Firebase</h2>
+
+<div class="diagram">  BEFORE (Lectures 05–13)
+  ─────────────────────────────────────────────────────────
+  LoginScreen → AuthService.login() → reqres.in API
+             → store token in SharedPreferences
+             → AuthProvider.checkAuthStatus() on startup
+
+  AFTER (Lecture 23)
+  ─────────────────────────────────────────────────────────
+  LoginScreen → AuthProvider.login() → Firebase Auth
+             → Firebase stores token automatically
+             → authStateChanges stream → AuthProvider rebuilds
+             → no SharedPreferences needed for auth</div>
+
+<div class="tip">
+  Firebase Auth persists the signed-in user automatically across app restarts.
+  The <code>authStateChanges</code> stream fires with the cached user on every app launch.
+  You no longer need to read a token from SharedPreferences on startup.
+</div>
+
+<!-- ── 8. FirebaseAuthException Error Codes ────────────────────────────────── -->
+<h2>8. Handling Firebase Errors</h2>
+<p>
+  Firebase throws <code>FirebaseAuthException</code> with a <code>code</code> string
+  when something goes wrong. You should convert these codes into friendly messages.
+</p>
+
+<table>
+  <tr><th>Error Code</th><th>When it happens</th><th>Friendly message</th></tr>
+  <tr><td><code>user-not-found</code></td><td>Email not registered</td><td>"No account found with this email."</td></tr>
+  <tr><td><code>wrong-password</code> / <code>invalid-credential</code></td><td>Bad password</td><td>"Incorrect email or password."</td></tr>
+  <tr><td><code>email-already-in-use</code></td><td>Registering a taken email</td><td>"An account already exists with this email."</td></tr>
+  <tr><td><code>weak-password</code></td><td>Password under 6 chars</td><td>"Password must be at least 6 characters."</td></tr>
+  <tr><td><code>network-request-failed</code></td><td>No internet</td><td>"No internet connection."</td></tr>
+</table>
+
+<pre><span class="kw">try</span> {
+  <span class="kw">await</span> <span class="cl">FirebaseAuth</span>.instance.<span class="fn">signInWithEmailAndPassword</span>(...);
+} <span class="kw">on</span> <span class="cl">FirebaseAuthException</span> <span class="kw">catch</span> (e) {
+  <span class="cm">// e.code gives the error code string</span>
+  <span class="kw">switch</span> (e.code) {
+    <span class="kw">case</span> <span class="st">'user-not-found'</span>: <span class="kw">return</span> <span class="st">'No account found.'</span>;
+    <span class="kw">case</span> <span class="st">'wrong-password'</span>: <span class="kw">return</span> <span class="st">'Incorrect password.'</span>;
+    <span class="kw">default</span>: <span class="kw">return</span> <span class="st">'Something went wrong.'</span>;
+  }
+}</pre>
+
+<!-- ── 9. Security Rules ─────────────────────────────────────────────────────── -->
+<h2>9. Firestore Security Rules (Important!)</h2>
+<p>
+  When you created your Firestore database in <em>test mode</em>, it allows
+  anyone to read and write any data. This is fine for development but
+  <strong>must be changed before releasing an app</strong>.
+</p>
+
+<pre><span class="cm">// Firestore Rules — Firebase console → Firestore → Rules</span>
+
+<span class="cm">// TEST MODE (allows all reads/writes — development only)</span>
+rules_version = <span class="st">'2'</span>;
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: <span class="kw">if</span> request.time &lt; timestamp.date(<span class="num">2025</span>, <span class="num">12</span>, <span class="num">31</span>);
+    }
+  }
+}
+
+<span class="cm">// PRODUCTION (users can only read/write their own document)</span>
+rules_version = <span class="st">'2'</span>;
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid} {
+      allow read, write: <span class="kw">if</span> request.auth != <span class="kw">null</span>
+                         &amp;&amp; request.auth.uid == uid;
+    }
+  }
+}</pre>
+
+<div class="warn">
+  Never ship an app with <em>test mode</em> rules. Any person on the internet
+  can read or delete all user data in your database.
+</div>
+
+<!-- ── Practice ───────────────────────────────────────────────────────────── -->
+<div class="practice">
+  <h2>Practice Tasks</h2>
+  <ol>
+    <li>Create a Firebase project at <code>console.firebase.google.com</code>, register the Android app, download <code>google-services.json</code>, and place it in <code>android/app/</code>.</li>
+    <li>Enable Email/Password authentication in the Firebase console. Run the app and register a new account via the Register screen.</li>
+    <li>Open the Firebase console → Authentication → Users and verify your new account appears there.</li>
+    <li>Open the Profile screen after logging in. Edit your name in the Firestore console directly (Firebase console → Firestore → users → your document) and restart the app to see the change load.</li>
+    <li><strong>Challenge:</strong> Add a "Save Profile" form to the Profile screen that lets the user type their name, contact, and address, then calls <code>FirebaseService.instance.saveProfile()</code> to write it to Firestore.</li>
+    <li><strong>Challenge:</strong> Update the Firestore Security Rules so users can only access their own document.</li>
+  </ol>
+</div>
+
+</main>
+</body>
+</html>

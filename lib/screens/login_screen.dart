@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_application_2/providers/auth_provider.dart';
-import 'package:flutter_application_2/services/auth_service.dart';
 import 'package:flutter_application_2/screens/home.dart';
 import 'package:flutter_application_2/screens/register_screen.dart';
 
@@ -28,14 +27,15 @@ class _LoginScreenState extends State<LoginScreen> {
 
   // Called when the user taps the Login button
   Future<void> _login() async {
-    // Step 1: Validate the form (checks all validator functions below)
+    // Step 1: Validate the form
     if (!_formKey.currentState!.validate()) return;
 
     // Step 2: Show loading spinner
     setState(() => _isLoading = true);
 
-    // Step 3: Call the API
-    final result = await AuthService.login(
+    // Step 3: Call Firebase Auth via AuthProvider
+    // Returns null on success, or an error message string on failure.
+    final error = await context.read<AuthProvider>().login(
       _emailController.text.trim(),
       _passwordController.text.trim(),
     );
@@ -44,28 +44,17 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!mounted) return;
     setState(() => _isLoading = false);
 
-    if (result['success'] == true) {
-      // Step 5a: Capture provider and email before the async gap
-      final authProvider = context.read<AuthProvider>();
-      final email = _emailController.text.trim();
-
-      await authProvider.login(email, result['token']);
-
-      // Step 6: Navigate to Home, removing all previous routes
-      // (so the user can't press Back to return to Login)
-      if (!mounted) return;
+    if (error == null) {
+      // Step 5a: Firebase login succeeded — go to Home
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const MyApp()),
         (route) => false,
       );
     } else {
-      // Step 5b: Show the error message from the API
+      // Step 5b: Show the Firebase error message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result['error']),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text(error), backgroundColor: Colors.red),
       );
     }
   }
@@ -215,32 +204,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     ],
                   ),
 
-                  // Hint for students using the test API
+                  // Hint for students — create an account first via Register screen
                   const SizedBox(height: 32),
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: Colors.orange.shade50,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.blue.shade200),
+                      border: Border.all(color: Colors.orange.shade200),
                     ),
-                    child: const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Test Credentials (reqres.in API):',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                            color: Colors.blue,
-                          ),
-                        ),
-                        SizedBox(height: 4),
-                        Text(
-                          'Email: eve.holt@reqres.in\nPassword: cityslicka',
-                          style: TextStyle(fontSize: 12, color: Colors.blueGrey),
-                        ),
-                      ],
+                    child: const Text(
+                      '💡 Lecture 23: Auth is now powered by Firebase.\n'
+                      'Tap "Register" to create an account, then log in.',
+                      style: TextStyle(fontSize: 12, color: Colors.deepOrange),
                     ),
                   ),
                 ],

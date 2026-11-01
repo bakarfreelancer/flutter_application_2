@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';           // NEW (Lecture 22)
-import 'package:shared_preferences/shared_preferences.dart'; // NEW (Lecture 22)
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_application_2/providers/auth_provider.dart';
 import 'package:flutter_application_2/providers/theme_provider.dart';
-import 'package:flutter_application_2/services/user_storage.dart';
+import 'package:flutter_application_2/services/firebase_service.dart'; // NEW (Lecture 23)
 import 'package:flutter_application_2/screens/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -33,9 +33,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _loadProfileImage();  // load saved profile photo (Lecture 22)
   }
 
-  // Reads name/contact/address from local storage
+  // Reads name/contact/address from Firestore (Lecture 23)
   Future<void> _loadUser() async {
-    final data = await UserStorage.getUser();
+    final uid = context.read<AuthProvider>().uid;
+    if (uid.isEmpty) return; // not logged in yet
+    final data = await FirebaseService.instance.loadProfile(uid);
+    if (!mounted) return;
     setState(() {
       name = data['name']!;
       contact = data['contact']!;
@@ -149,7 +152,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (confirmed != true) return;
     if (!mounted) return;
 
-    // Call AuthProvider.logout() — clears token from SharedPreferences
+    // Call AuthProvider.logout() — signs out from Firebase
     await context.read<AuthProvider>().logout();
 
     if (!mounted) return;

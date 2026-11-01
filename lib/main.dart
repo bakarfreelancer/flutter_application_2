@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';                       // NEW (Lecture 23)
 import 'package:flutter_application_2/providers/cart_provider.dart';
 import 'package:flutter_application_2/providers/auth_provider.dart';
-import 'package:flutter_application_2/providers/theme_provider.dart'; // NEW (Lecture 14)
-import 'package:flutter_application_2/services/notification_service.dart'; // NEW (Lecture 20)
+import 'package:flutter_application_2/providers/theme_provider.dart';
+import 'package:flutter_application_2/services/notification_service.dart';
 import 'package:flutter_application_2/screens/splash.dart';
 
-// main() is now async so we can await NotificationService.init()
-// before the app renders anything. (Lecture 20)
 Future<void> main() async {
-  // Required whenever you call platform code (like notifications or SQLite)
-  // before runApp(). Ensures Flutter engine is ready.
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Set up the notification channels and request permission once.
+  // Initialize Firebase before anything else.
+  // This reads google-services.json (Android) to connect to your Firebase project.
+  // ⚠️ The app will crash here if google-services.json is missing from android/app/.
+  await Firebase.initializeApp();                                        // NEW (Lecture 23)
+
   await NotificationService.instance.init();
 
   runApp(
