@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lecture 24 – Android App Deployment</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #222; line-height: 1.7; }
+  header { background: linear-gradient(135deg, #1b5e20, #388e3c); color: #fff; padding: 40px 32px 32px; }
+  header h1 { font-size: 2rem; margin-bottom: 6px; }
+  header p  { font-size: 1.05rem; opacity: .85; }
+  .badge { display:inline-block; background:rgba(255,255,255,.2); border-radius:20px; padding:3px 12px; font-size:.8rem; margin-top:10px; margin-right:6px; }
+  main { max-width: 940px; margin: 32px auto; padding: 0 20px 60px; }
+
+  .objectives { background:#e8f5e9; border-left:5px solid #388e3c; border-radius:8px; padding:20px 24px; margin-bottom:32px; }
+  .objectives h2 { color:#1b5e20; margin-bottom:10px; }
+  .objectives ul { padding-left:20px; }
+  .objectives li { margin-bottom:5px; }
+
+  h2 { font-size:1.4rem; color:#2e7d32; margin:36px 0 12px; border-bottom:2px solid #a5d6a7; padding-bottom:6px; }
+  h3 { font-size:1.1rem; color:#1b5e20; margin:22px 0 8px; }
+  p  { margin-bottom:12px; }
+
+  pre { background:#1e1e2e; color:#cdd6f4; border-radius:10px; padding:20px; overflow-x:auto; font-size:.88rem; line-height:1.6; margin:14px 0 20px; }
+  code { background:#f0f4f0; color:#2e7d32; padding:2px 6px; border-radius:4px; font-size:.9em; }
+  .kw  { color:#cba6f7; font-weight:bold; }
+  .cl  { color:#89dceb; }
+  .st  { color:#a6e3a1; }
+  .cm  { color:#6c7086; font-style:italic; }
+  .num { color:#fab387; }
+  .fn  { color:#89b4fa; }
+
+  .tip   { background:#e8f5e9; border-left:4px solid #43a047; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .warn  { background:#fff8e1; border-left:4px solid #ffa000; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .danger{ background:#ffebee; border-left:4px solid #e53935; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .info  { background:#e3f2fd; border-left:4px solid #1e88e5; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .tip::before    { content:'✅ '; font-weight:bold; }
+  .warn::before   { content:'⚠️ '; font-weight:bold; }
+  .danger::before { content:'🚫 '; font-weight:bold; }
+  .info::before   { content:'ℹ️ '; font-weight:bold; }
+
+  .diagram { background:#fff; border:2px dashed #a5d6a7; border-radius:10px; padding:20px; margin:16px 0; font-family:monospace; font-size:.88rem; white-space:pre; overflow-x:auto; }
+
+  .steps { list-style:none; padding:0; }
+  .steps li { display:flex; gap:14px; margin-bottom:18px; align-items:flex-start; }
+  .step-num { background:#388e3c; color:#fff; border-radius:50%; width:32px; height:32px; min-width:32px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:.9rem; margin-top:2px; }
+
+  .prereq-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:16px 0; }
+  .prereq-card { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,.08); border-top:3px solid #388e3c; }
+  .prereq-card h4 { color:#2e7d32; margin-bottom:6px; }
+  .prereq-card .status-req  { color:#e53935; font-size:.8rem; font-weight:bold; }
+  .prereq-card .status-rec  { color:#f57c00; font-size:.8rem; font-weight:bold; }
+
+  .checklist { list-style:none; padding:0; }
+  .checklist li { padding:8px 0; border-bottom:1px solid #e8f5e9; display:flex; gap:10px; align-items:flex-start; }
+  .checklist li:last-child { border-bottom:none; }
+  .checklist li::before { content:'☐'; font-size:1.1rem; color:#388e3c; }
+
+  table { width:100%; border-collapse:collapse; margin:16px 0; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.07); }
+  th { background:#388e3c; color:#fff; padding:10px 14px; text-align:left; font-size:.9rem; }
+  td { padding:10px 14px; border-bottom:1px solid #c8e6c9; font-size:.9rem; }
+  tr:last-child td { border-bottom:none; }
+  tr:nth-child(even) td { background:#f1f8f1; }
+
+  .phase { background:#fff; border-radius:10px; box-shadow:0 2px 8px rgba(0,0,0,.08); margin:16px 0; overflow:hidden; }
+  .phase-header { background:#388e3c; color:#fff; padding:12px 18px; font-weight:bold; font-size:1rem; }
+  .phase-body { padding:16px 18px; }
+
+  .practice { background:#e8f5e9; border-left:5px solid #2e7d32; border-radius:8px; padding:20px 24px; margin-top:32px; }
+  .practice h2 { color:#1b5e20; border:none; margin-top:0; }
+  .practice ol { padding-left:20px; }
+  .practice li { margin-bottom:8px; }
+
+  @media(max-width:620px){ .prereq-grid{ grid-template-columns:1fr; } header h1{ font-size:1.5rem; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lecture 24 – Android App Deployment</h1>
+  <p>BS Computer Science · Mobile Application Development</p>
+  <span class="badge">Google Play Store</span>
+  <span class="badge">App Signing</span>
+  <span class="badge">Release Build</span>
+  <span class="badge">AAB / APK</span>
+</header>
+
+<main>
+
+<div class="objectives">
+  <h2>Learning Objectives</h2>
+  <ul>
+    <li>Understand the full Android release pipeline from development to the Play Store</li>
+    <li>Know all prerequisites before starting the deployment process</li>
+    <li>Generate a keystore and configure app signing</li>
+    <li>Set the correct version number, application ID, and SDK targets</li>
+    <li>Build a release APK and an Android App Bundle (AAB)</li>
+    <li>Create a Google Play Developer account and upload your first app</li>
+    <li>Navigate the Play Console review process</li>
+  </ul>
+</div>
+
+<!-- ── Overview ───────────────────────────────────────────────────────────── -->
+<h2>1. Overview: The Deployment Pipeline</h2>
+
+<div class="diagram">  DEVELOPMENT                       RELEASE
+  ──────────────────────────────────────────────────────────────────────
+  1. Prerequisites    → accounts, tools, assets ready
+  2. App configuration → ID, version, icons, permissions reviewed
+  3. App signing      → keystore generated, gradle configured
+  4. Release build    → flutter build appbundle (AAB file)
+  5. Play Console     → create app listing, screenshots, description
+  6. Upload & Review  → Google reviews app (1–3 days)
+  7. Published        → live on the Play Store</div>
+
+<!-- ── 2. Prerequisites ────────────────────────────────────────────────────── -->
+<h2>2. Prerequisites — Complete Before You Start</h2>
+<p>
+  Missing any of these will block you at a later step. Verify all of them
+  <strong>before</strong> touching your Flutter project.
+</p>
+
+<div class="prereq-grid">
+  <div class="prereq-card">
+    <h4>Google Play Developer Account</h4>
+    <span class="status-req">REQUIRED</span>
+    <p>One-time registration fee: <strong>$25 USD</strong>.<br>
+    Go to <code>play.google.com/console</code>, sign in with a Google account, pay the fee.<br>
+    Takes 24–48 hours to activate.</p>
+  </div>
+  <div class="prereq-card">
+    <h4>Flutter Release Build Tools</h4>
+    <span class="status-req">REQUIRED</span>
+    <p>Run <code>flutter doctor</code> and ensure all checks pass.<br>
+    Android SDK, Build Tools, and NDK must be installed.<br>
+    Java 17+ must be available.</p>
+  </div>
+  <div class="prereq-card">
+    <h4>App Icons</h4>
+    <span class="status-req">REQUIRED</span>
+    <p>A <strong>512 × 512 px PNG</strong> hi-res icon for the Play Store listing.<br>
+    Also need launcher icons in multiple resolutions (use <code>flutter_launcher_icons</code> package).</p>
+  </div>
+  <div class="prereq-card">
+    <h4>Screenshots</h4>
+    <span class="status-req">REQUIRED</span>
+    <p>Minimum 2 screenshots per device type (phone, tablet).<br>
+    Minimum size: 320 px on the shortest side.<br>
+    Capture from the emulator or a real device.</p>
+  </div>
+  <div class="prereq-card">
+    <h4>App Name &amp; Description</h4>
+    <span class="status-req">REQUIRED</span>
+    <p>Short title: max <strong>30 characters</strong>.<br>
+    Short description: max <strong>80 characters</strong>.<br>
+    Full description: max <strong>4000 characters</strong>.</p>
+  </div>
+  <div class="prereq-card">
+    <h4>Privacy Policy URL</h4>
+    <span class="status-req">REQUIRED for most apps</span>
+    <p>Required if your app collects any user data (Firebase, location, camera, etc.).<br>
+    Host a simple HTML page on GitHub Pages or any free hosting.</p>
+  </div>
+  <div class="prereq-card">
+    <h4>Feature Graphic</h4>
+    <span class="status-rec">RECOMMENDED</span>
+    <p>A banner image: <strong>1024 × 500 px</strong>.<br>
+    Displayed at the top of the Play Store listing.<br>
+    Use Canva or Figma to create one quickly.</p>
+  </div>
+  <div class="prereq-card">
+    <h4>Content Rating Questionnaire</h4>
+    <span class="status-req">REQUIRED</span>
+    <p>Play Console asks you to fill this out.<br>
+    Determines the age rating of your app.<br>
+    For a shopping app: Everyone (E).</p>
+  </div>
+</div>
+
+<!-- ── 3. App Configuration ────────────────────────────────────────────────── -->
+<h2>3. Step 1 — App Configuration</h2>
+<p>
+  Before building a release, configure the app's identity and version.
+  These values <strong>cannot be changed</strong> after the first upload without consequences.
+</p>
+
+<h3>3.1 Application ID (Package Name)</h3>
+<p>
+  The application ID is the globally unique identifier for your app on the Play Store.
+  Once published, it <strong>can never change</strong>.
+</p>
+<pre><span class="cm">// android/app/build.gradle.kts</span>
+android {
+    defaultConfig {
+        applicationId = <span class="st">"com.yourname.shopapp"</span>   <span class="cm">// ← change from default</span>
+        <span class="cm">// Format: reverse domain notation</span>
+        <span class="cm">// Good: com.johnsmith.shopapp</span>
+        <span class="cm">// Bad:  com.example.flutter_application_2  ← never ship with "example"</span>
+    }
+}</pre>
+
+<div class="danger">
+  Never submit an app with <code>com.example</code> as the application ID. Google will
+  reject it. Change it to something like <code>com.yourname.appname</code> before the
+  very first upload.
+</div>
+
+<h3>3.2 Version Number</h3>
+<p>
+  Two values control the version. Both must increase with every new upload to the Play Store.
+</p>
+<pre><span class="cm"># pubspec.yaml</span>
+version: <span class="num">1.0.0</span>+<span class="num">1</span>
+<span class="cm">#        │     └── versionCode (integer, must increase each upload: 1, 2, 3, …)</span>
+<span class="cm">#        └──────── versionName (shown to users: "1.0.0", "1.1.0", "2.0.0")</span></pre>
+
+<table>
+  <tr><th>Field</th><th>User sees?</th><th>Play Store rule</th><th>Example progression</th></tr>
+  <tr><td>versionName</td><td>Yes ("1.0.0")</td><td>Can be any string</td><td>1.0.0 → 1.0.1 → 1.1.0 → 2.0.0</td></tr>
+  <tr><td>versionCode</td><td>No</td><td>Must be higher than previous upload</td><td>1 → 2 → 3 → 4</td></tr>
+</table>
+
+<h3>3.3 SDK Versions</h3>
+<pre><span class="cm">// android/app/build.gradle.kts</span>
+android {
+    defaultConfig {
+        minSdk = <span class="num">23</span>      <span class="cm">// minimum Android version (6.0) your app supports</span>
+        targetSdk = <span class="num">35</span>   <span class="cm">// the Android version you tested against — keep current</span>
+    }
+}</pre>
+
+<table>
+  <tr><th>Recommendation</th><th>minSdk</th><th>Android version</th><th>Market coverage</th></tr>
+  <tr><td>Most apps</td><td>23</td><td>Android 6.0</td><td>~99%</td></tr>
+  <tr><td>Wider reach</td><td>21</td><td>Android 5.0</td><td>~99.9%</td></tr>
+  <tr><td>Modern only</td><td>26</td><td>Android 8.0</td><td>~95%</td></tr>
+</table>
+
+<!-- ── 4. App Icons ────────────────────────────────────────────────────────── -->
+<h2>4. Step 2 — App Icons</h2>
+<p>
+  Android requires launcher icons in many resolutions. The easiest way is to use
+  the <code>flutter_launcher_icons</code> package.
+</p>
+
+<pre><span class="cm"># pubspec.yaml — add in dev_dependencies</span>
+dev_dependencies:
+  flutter_launcher_icons: ^<span class="num">0.14.0</span>
+
+<span class="cm"># Also add the configuration block at the bottom of pubspec.yaml</span>
+flutter_launcher_icons:
+  android: <span class="st">"launcher_icon"</span>
+  image_path: <span class="st">"assets/images/logo.jpg"</span>  <span class="cm"># your 512×512 icon</span>
+  adaptive_icon_background: <span class="st">"#FF6F00"</span>   <span class="cm"># background colour for adaptive icons</span>
+  adaptive_icon_foreground: <span class="st">"assets/images/logo.jpg"</span></pre>
+
+<pre><span class="cm"># Run the generator — creates all required icon sizes automatically</span>
+flutter pub run flutter_launcher_icons</pre>
+
+<!-- ── 5. App Signing ──────────────────────────────────────────────────────── -->
+<h2>5. Step 3 — App Signing (Critical)</h2>
+<p>
+  Every Android app published to the Play Store must be <strong>digitally signed</strong>
+  with a keystore. A keystore is a file containing a private key that proves the app
+  came from you.
+</p>
+
+<div class="diagram">  What is a keystore?
+  ─────────────────────────────────────────────────────────
+  A keystore is like a digital passport for your app.
+  Google uses it to verify that future updates come from the same developer.
+
+  If you LOSE your keystore and password:
+  → You can NEVER update your existing app on the Play Store.
+  → You must publish it as a brand-new app with a new package name.
+  → All your reviews and download history are lost.
+
+  ⚠️  BACK UP YOUR KEYSTORE IN AT LEAST 2 SAFE PLACES.</div>
+
+<h3>5.1 Generate a Keystore</h3>
+<pre><span class="cm"># Run this command ONCE. Replace the values with your own details.</span>
+keytool -genkey -v \
+  -keystore ~/my_app_keystore.jks \
+  -storetype JKS \
+  -keyalg RSA \
+  -keysize 2048 \
+  -validity 10000 \
+  -alias my_key \
+  -storepass YOUR_STORE_PASSWORD \
+  -keypass YOUR_KEY_PASSWORD \
+  -dname "CN=Your Name, OU=Dev, O=Your Company, L=City, S=State, C=US"</pre>
+
+<p>This creates a file <code>my_app_keystore.jks</code> in your home directory. Write down the passwords — you will need them for every release build.</p>
+
+<h3>5.2 Store Signing Credentials Securely</h3>
+<p>
+  Create a file <code>android/key.properties</code> (add this path to <code>.gitignore</code>!):
+</p>
+<pre><span class="cm"># android/key.properties — NEVER commit this file to git!</span>
+storePassword=YOUR_STORE_PASSWORD
+keyPassword=YOUR_KEY_PASSWORD
+keyAlias=my_key
+storeFile=/Users/yourname/my_app_keystore.jks</pre>
+
+<div class="danger">
+  Add <code>android/key.properties</code> and <code>*.jks</code> / <code>*.keystore</code>
+  to your <code>.gitignore</code> immediately. If these files are pushed to a public
+  GitHub repository, anyone can sign apps in your name.
+</div>
+
+<h3>5.3 Configure Gradle to Sign the Release Build</h3>
+<pre><span class="cm">// android/app/build.gradle.kts — add signing config</span>
+
+<span class="kw">import</span> java.util.Properties
+<span class="kw">import</span> java.io.FileInputStream
+
+<span class="cm">// Read key.properties</span>
+<span class="kw">val</span> keyPropertiesFile = rootProject.file(<span class="st">"key.properties"</span>)
+<span class="kw">val</span> keyProperties = Properties()
+keyProperties.load(FileInputStream(keyPropertiesFile))
+
+android {
+    signingConfigs {
+        create(<span class="st">"release"</span>) {
+            storeFile    = file(keyProperties[<span class="st">"storeFile"</span>] <span class="kw">as</span> String)
+            storePassword = keyProperties[<span class="st">"storePassword"</span>] <span class="kw">as</span> String
+            keyAlias     = keyProperties[<span class="st">"keyAlias"</span>] <span class="kw">as</span> String
+            keyPassword  = keyProperties[<span class="st">"keyPassword"</span>] <span class="kw">as</span> String
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName(<span class="st">"release"</span>)  <span class="cm">// ← use our key</span>
+            isMinifyEnabled = <span class="kw">true</span>    <span class="cm">// shrink code size</span>
+            isShrinkResources = <span class="kw">true</span>  <span class="cm">// remove unused resources</span>
+        }
+    }
+}</pre>
+
+<!-- ── 6. Build ────────────────────────────────────────────────────────────── -->
+<h2>6. Step 4 — Building the Release</h2>
+
+<h3>APK vs AAB — Which to Use?</h3>
+<table>
+  <tr><th></th><th>APK (Android Package)</th><th>AAB (Android App Bundle)</th></tr>
+  <tr><td>Play Store upload</td><td>Accepted (legacy)</td><td><strong>Required since Aug 2021</strong></td></tr>
+  <tr><td>Direct installation</td><td>Yes (sideloading)</td><td>No — must go through Play Store</td></tr>
+  <tr><td>File size delivered to user</td><td>Full size</td><td>Smaller (only device-relevant resources)</td></tr>
+  <tr><td>Use case</td><td>Testing, sideloading, enterprise</td><td>Play Store publication</td></tr>
+</table>
+
+<h3>Build Commands</h3>
+<pre><span class="cm"># Build release AAB — for Play Store upload (REQUIRED)</span>
+flutter build appbundle --release
+<span class="cm"># Output: build/app/outputs/bundle/release/app-release.aab</span>
+
+<span class="cm"># Build release APK — for direct testing or sideloading</span>
+flutter build apk --release
+<span class="cm"># Output: build/app/outputs/apk/release/app-release.apk</span>
+
+<span class="cm"># Build split APKs (smaller files, one per CPU architecture)</span>
+flutter build apk --split-per-abi
+<span class="cm"># Outputs: app-armeabi-v7a-release.apk, app-arm64-v8a-release.apk, app-x86_64-release.apk</span></pre>
+
+<div class="tip">
+  Before building for release, always run <code>flutter clean</code> first to remove
+  any cached debug build artifacts. A dirty build cache can cause signing errors.
+</div>
+
+<pre><span class="cm"># Clean build cache first, then build</span>
+flutter clean
+flutter pub get
+flutter build appbundle --release</pre>
+
+<!-- ── 7. Play Console ─────────────────────────────────────────────────────── -->
+<h2>7. Step 5 — Google Play Console Setup</h2>
+
+<ul class="steps">
+  <li>
+    <div class="step-num">1</div>
+    <div>
+      <strong>Create a new app</strong><br>
+      Play Console → <em>All apps</em> → <em>Create app</em>.
+      Choose: App or Game, Free or Paid, confirm policies.
+    </div>
+  </li>
+  <li>
+    <div class="step-num">2</div>
+    <div>
+      <strong>Fill in the store listing</strong><br>
+      <em>Store presence → Main store listing</em>.<br>
+      Add: App name, short description, full description, icon (512×512 PNG),
+      feature graphic (1024×500 PNG), and at least 2 phone screenshots.
+    </div>
+  </li>
+  <li>
+    <div class="step-num">3</div>
+    <div>
+      <strong>Complete the content rating questionnaire</strong><br>
+      <em>Policy → App content → Content rating</em>.<br>
+      Answer questions honestly. The rating is assigned automatically.
+    </div>
+  </li>
+  <li>
+    <div class="step-num">4</div>
+    <div>
+      <strong>Set up target audience</strong><br>
+      <em>Policy → App content → Target audience and content</em>.<br>
+      Choose "18 and over" for apps with no specific child focus.
+    </div>
+  </li>
+  <li>
+    <div class="step-num">5</div>
+    <div>
+      <strong>Add a privacy policy</strong><br>
+      <em>Policy → App content → Privacy policy</em>.<br>
+      Required if your app uses Firebase, location, camera, or contacts.
+    </div>
+  </li>
+  <li>
+    <div class="step-num">6</div>
+    <div>
+      <strong>Set up pricing and distribution</strong><br>
+      <em>Monetise → Pricing and distribution</em> (legacy UI) or <em>Store presence → Countries and regions</em>.<br>
+      Choose Free or Paid, select which countries to publish to.
+    </div>
+  </li>
+</ul>
+
+<!-- ── 8. Upload & Tracks ──────────────────────────────────────────────────── -->
+<h2>8. Step 6 — Uploading the AAB</h2>
+<p>
+  Play Console uses <strong>tracks</strong> to control who receives your app.
+  Always test on Internal or Alpha before going to Production.
+</p>
+
+<div class="diagram">  RELEASE TRACKS (in order of testing confidence)
+  ─────────────────────────────────────────────────────────────────────
+  Internal testing  → up to 100 testers you add by email
+                    → no review needed, published in minutes
+                    → use this FIRST to verify signing works
+
+  Closed testing    → up to 2000 testers (Alpha / Beta tracks)
+  (Alpha / Beta)    → testers must opt in via a link
+                    → quick review by Google
+
+  Open testing      → anyone can join
+  (Production-like) → full Google review required
+
+  Production        → live on the Play Store for everyone
+                    → full Google review (1–3 business days)</div>
+
+<h3>Upload Steps</h3>
+<ul class="steps">
+  <li>
+    <div class="step-num">1</div>
+    <div>
+      Go to <em>Testing → Internal testing</em> → <em>Create new release</em>.
+    </div>
+  </li>
+  <li>
+    <div class="step-num">2</div>
+    <div>
+      Click <em>Upload</em> → select <code>app-release.aab</code> from
+      <code>build/app/outputs/bundle/release/</code>.
+    </div>
+  </li>
+  <li>
+    <div class="step-num">3</div>
+    <div>
+      Add release notes (what's new in this version) → <em>Save</em> → <em>Review release</em> → <em>Start rollout</em>.
+    </div>
+  </li>
+  <li>
+    <div class="step-num">4</div>
+    <div>
+      Once internal testing looks good, go to <em>Production</em> → <em>Create new release</em>
+      → upload the same AAB → roll out to Production.
+    </div>
+  </li>
+</ul>
+
+<!-- ── 9. Review & Checklist ──────────────────────────────────────────────── -->
+<h2>9. Pre-Release Checklist</h2>
+<p>Go through every item before uploading to Production:</p>
+
+<ul class="checklist">
+  <li>Application ID changed from <code>com.example.*</code> to your own domain</li>
+  <li>versionCode incremented from the previous upload</li>
+  <li>versionName updated to reflect the new release</li>
+  <li>Keystore backed up in at least 2 locations (cloud + USB drive)</li>
+  <li>key.properties is in .gitignore and never committed to git</li>
+  <li>App tested on a real device or emulator in release mode</li>
+  <li>All debug-only code removed (test credentials, log statements, banners)</li>
+  <li><code>debugShowCheckedModeBanner: false</code> in MaterialApp (already done)</li>
+  <li>Permissions in AndroidManifest match only what the app actually uses</li>
+  <li>App icon generated and shows correctly on the home screen</li>
+  <li>Store listing screenshots taken (minimum 2)</li>
+  <li>Privacy policy URL live and accessible</li>
+  <li>Content rating questionnaire completed</li>
+  <li>Google Play Developer account active (≥ 24–48 hrs after registration)</li>
+</ul>
+
+<!-- ── 10. Common Errors ───────────────────────────────────────────────────── -->
+<h2>10. Common Deployment Errors</h2>
+
+<table>
+  <tr><th>Error</th><th>Cause</th><th>Fix</th></tr>
+  <tr><td>keystore file not found</td><td>Wrong path in key.properties</td><td>Use absolute path to the .jks file</td></tr>
+  <tr><td>versionCode must be higher</td><td>Uploading same versionCode again</td><td>Increase <code>+N</code> in pubspec.yaml version</td></tr>
+  <tr><td>APK not signed with correct key</td><td>Signed with debug key accidentally</td><td>Check <code>buildTypes.release.signingConfig</code></td></tr>
+  <tr><td>Package name not available</td><td>Another app uses the same application ID</td><td>Change applicationId to something unique</td></tr>
+  <tr><td>App rejected: missing privacy policy</td><td>App uses permissions without a policy</td><td>Add a privacy policy URL in Play Console</td></tr>
+  <tr><td>flutter build fails with signing error</td><td>key.properties not found</td><td>Verify file exists at <code>android/key.properties</code></td></tr>
+</table>
+
+<!-- ── Practice ───────────────────────────────────────────────────────────── -->
+<div class="practice">
+  <h2>Practice Tasks</h2>
+  <ol>
+    <li>Change the <code>applicationId</code> in <code>build.gradle.kts</code> from <code>com.example.*</code> to <code>com.yourname.shopapp</code>.</li>
+    <li>Generate a keystore using the <code>keytool</code> command. Write down the store password and key password, and back up the <code>.jks</code> file.</li>
+    <li>Create <code>android/key.properties</code> and add it to <code>.gitignore</code>.</li>
+    <li>Configure the release signing in <code>app/build.gradle.kts</code> and run <code>flutter build appbundle --release</code>. Verify the <code>.aab</code> file appears in the output directory.</li>
+    <li>Install the <code>flutter_launcher_icons</code> package, configure it in <code>pubspec.yaml</code>, and run the generator. Take a screenshot of the updated app icon on the home screen.</li>
+    <li><strong>Challenge:</strong> Register a Google Play Developer account and upload your AAB to the Internal Testing track. Share the internal test link with a classmate to install.</li>
+  </ol>
+</div>
+
+</main>
+</body>
+</html>

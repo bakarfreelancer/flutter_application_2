@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Lecture 25 – iOS App Deployment</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #222; line-height: 1.7; }
+  header { background: linear-gradient(135deg, #0d47a1, #1976d2); color: #fff; padding: 40px 32px 32px; }
+  header h1 { font-size: 2rem; margin-bottom: 6px; }
+  header p  { font-size: 1.05rem; opacity: .85; }
+  .badge { display:inline-block; background:rgba(255,255,255,.2); border-radius:20px; padding:3px 12px; font-size:.8rem; margin-top:10px; margin-right:6px; }
+  main { max-width: 940px; margin: 32px auto; padding: 0 20px 60px; }
+
+  .objectives { background:#e3f2fd; border-left:5px solid #1976d2; border-radius:8px; padding:20px 24px; margin-bottom:32px; }
+  .objectives h2 { color:#0d47a1; margin-bottom:10px; }
+  .objectives ul { padding-left:20px; }
+  .objectives li { margin-bottom:5px; }
+
+  h2 { font-size:1.4rem; color:#1565c0; margin:36px 0 12px; border-bottom:2px solid #90caf9; padding-bottom:6px; }
+  h3 { font-size:1.1rem; color:#0d47a1; margin:22px 0 8px; }
+  p  { margin-bottom:12px; }
+
+  pre { background:#1e1e2e; color:#cdd6f4; border-radius:10px; padding:20px; overflow-x:auto; font-size:.88rem; line-height:1.6; margin:14px 0 20px; }
+  code { background:#e3f2fd; color:#1565c0; padding:2px 6px; border-radius:4px; font-size:.9em; }
+  .kw  { color:#cba6f7; font-weight:bold; }
+  .cl  { color:#89dceb; }
+  .st  { color:#a6e3a1; }
+  .cm  { color:#6c7086; font-style:italic; }
+  .num { color:#fab387; }
+  .fn  { color:#89b4fa; }
+
+  .tip    { background:#e8f5e9; border-left:4px solid #43a047; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .warn   { background:#fff8e1; border-left:4px solid #ffa000; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .danger { background:#ffebee; border-left:4px solid #e53935; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .info   { background:#e3f2fd; border-left:4px solid #1e88e5; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .apple  { background:#f3e5f5; border-left:4px solid #8e24aa; border-radius:8px; padding:14px 18px; margin:14px 0; }
+  .tip::before    { content:'✅ '; font-weight:bold; }
+  .warn::before   { content:'⚠️ '; font-weight:bold; }
+  .danger::before { content:'🚫 '; font-weight:bold; }
+  .info::before   { content:'ℹ️ '; font-weight:bold; }
+  .apple::before  { content:'🍎 '; font-weight:bold; }
+
+  .diagram { background:#fff; border:2px dashed #90caf9; border-radius:10px; padding:20px; margin:16px 0; font-family:monospace; font-size:.88rem; white-space:pre; overflow-x:auto; }
+
+  .steps { list-style:none; padding:0; }
+  .steps li { display:flex; gap:14px; margin-bottom:18px; align-items:flex-start; }
+  .step-num { background:#1976d2; color:#fff; border-radius:50%; width:32px; height:32px; min-width:32px; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:.9rem; margin-top:2px; }
+
+  .prereq-grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:16px 0; }
+  .prereq-card { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,.08); border-top:3px solid #1976d2; }
+  .prereq-card h4 { color:#1565c0; margin-bottom:6px; }
+  .prereq-card .status-req  { color:#e53935; font-size:.8rem; font-weight:bold; }
+  .prereq-card .status-cost { color:#8e24aa; font-size:.8rem; font-weight:bold; }
+
+  .checklist { list-style:none; padding:0; }
+  .checklist li { padding:8px 0; border-bottom:1px solid #e3f2fd; display:flex; gap:10px; align-items:flex-start; }
+  .checklist li:last-child { border-bottom:none; }
+  .checklist li::before { content:'☐'; font-size:1.1rem; color:#1976d2; }
+
+  .compare { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin:16px 0; }
+  .compare-col { background:#fff; border-radius:8px; padding:16px; box-shadow:0 1px 4px rgba(0,0,0,.08); }
+  .compare-col h4 { margin-bottom:8px; font-size:1rem; }
+  .col-android h4 { color:#2e7d32; }
+  .col-ios h4     { color:#1565c0; }
+
+  table { width:100%; border-collapse:collapse; margin:16px 0; background:#fff; border-radius:8px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.07); }
+  th { background:#1976d2; color:#fff; padding:10px 14px; text-align:left; font-size:.9rem; }
+  td { padding:10px 14px; border-bottom:1px solid #bbdefb; font-size:.9rem; }
+  tr:last-child td { border-bottom:none; }
+  tr:nth-child(even) td { background:#e8f4fe; }
+
+  .practice { background:#e3f2fd; border-left:5px solid #1565c0; border-radius:8px; padding:20px 24px; margin-top:32px; }
+  .practice h2 { color:#0d47a1; border:none; margin-top:0; }
+  .practice ol { padding-left:20px; }
+  .practice li { margin-bottom:8px; }
+
+  @media(max-width:620px){ .prereq-grid,.compare{ grid-template-columns:1fr; } header h1{ font-size:1.5rem; } }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Lecture 25 – iOS App Deployment</h1>
+  <p>BS Computer Science · Mobile Application Development</p>
+  <span class="badge">Apple App Store</span>
+  <span class="badge">Xcode</span>
+  <span class="badge">Certificates &amp; Profiles</span>
+  <span class="badge">TestFlight</span>
+</header>
+
+<main>
+
+<div class="objectives">
+  <h2>Learning Objectives</h2>
+  <ul>
+    <li>Understand the iOS deployment pipeline and how it differs from Android</li>
+    <li>Know all prerequisites and costs for iOS development</li>
+    <li>Understand code signing: certificates, identifiers, and provisioning profiles</li>
+    <li>Configure an iOS Flutter project (Info.plist, Bundle ID, capabilities)</li>
+    <li>Build an IPA archive with Xcode</li>
+    <li>Distribute to testers with <strong>TestFlight</strong></li>
+    <li>Submit an app for App Store review</li>
+  </ul>
+</div>
+
+<!-- ── 1. Overview ─────────────────────────────────────────────────────────── -->
+<h2>1. Overview: iOS vs Android Deployment</h2>
+<p>
+  iOS deployment is stricter and more complex than Android. Apple controls every step
+  of the process more tightly. Understanding the differences helps avoid surprises.
+</p>
+
+<div class="compare">
+  <div class="compare-col col-android">
+    <h4>Android (Google Play)</h4>
+    <ul style="padding-left:18px">
+      <li>Developer fee: $25 one-time</li>
+      <li>Any computer (Mac, Windows, Linux)</li>
+      <li>Review time: hours to 1–2 days</li>
+      <li>Signing: keystore file (.jks)</li>
+      <li>Upload format: AAB file</li>
+      <li>Sideloading: allowed</li>
+      <li>Test distribution: Internal track</li>
+    </ul>
+  </div>
+  <div class="compare-col col-ios">
+    <h4>iOS (Apple App Store)</h4>
+    <ul style="padding-left:18px">
+      <li>Developer fee: $99/year</li>
+      <li><strong>Mac with Xcode only</strong></li>
+      <li>Review time: 1–3 days (can be longer)</li>
+      <li>Signing: certificates + provisioning profiles</li>
+      <li>Upload format: IPA (via Xcode or Transporter)</li>
+      <li>Sideloading: not allowed (except Enterprise)</li>
+      <li>Test distribution: TestFlight</li>
+    </ul>
+  </div>
+</div>
+
+<div class="apple">
+  iOS builds <strong>require a Mac with Xcode</strong>. You cannot build an iOS app on Windows
+  or Linux. If you do not have a Mac, you can use a cloud Mac service (MacStadium,
+  GitHub Actions with macos runner, or Codemagic CI/CD) to build remotely.
+</div>
+
+<!-- ── 2. Prerequisites ────────────────────────────────────────────────────── -->
+<h2>2. Prerequisites — Complete Before You Start</h2>
+
+<div class="prereq-grid">
+  <div class="prereq-card">
+    <h4>Mac with macOS Ventura or later</h4>
+    <span class="status-req">REQUIRED</span>
+    <p>iOS builds are only possible on macOS. Xcode requires macOS 13.5+ for the latest version.</p>
+  </div>
+  <div class="prereq-card">
+    <h4>Xcode (latest version)</h4>
+    <span class="status-req">REQUIRED</span>
+    <p>Download from the Mac App Store (free, ~15 GB).<br>
+    Run <code>sudo xcode-select --switch /Applications/Xcode.app</code> after installation.</p>
+  </div>
+  <div class="prereq-card">
+    <h4>Apple Developer Account</h4>
+    <span class="status-cost">$99 USD / YEAR</span>
+    <p>Required to submit to the App Store and use TestFlight.<br>
+    Register at <code>developer.apple.com</code>.<br>
+    Activation takes 24–48 hours.</p>
+  </div>
+  <div class="prereq-card">
+    <h4>Apple ID enrolled in Developer Program</h4>
+    <span class="status-req">REQUIRED</span>
+    <p>Sign in to Xcode with the same Apple ID used to pay for the Developer Program. Go to Xcode → Settings → Accounts → add Apple ID.</p>
+  </div>
+  <div class="prereq-card">
+    <h4>Bundle Identifier</h4>
+    <span class="status-req">REQUIRED</span>
+    <p>Like Android's applicationId: reverse domain notation.<br>
+    Example: <code>com.yourname.shopapp</code><br>
+    Register it at <code>developer.apple.com → Identifiers</code>.</p>
+  </div>
+  <div class="prereq-card">
+    <h4>iOS Device or Simulator</h4>
+    <span class="status-req">REQUIRED for testing</span>
+    <p>The iOS Simulator is included with Xcode.<br>
+    For device testing: the device must be registered in your Developer account.</p>
+  </div>
+  <div class="prereq-card">
+    <h4>App Store Connect Account</h4>
+    <span class="status-req">REQUIRED</span>
+    <p>App Store Connect (<code>appstoreconnect.apple.com</code>) is where you manage listings, screenshots, and submissions. Same login as Developer account.</p>
+  </div>
+  <div class="prereq-card">
+    <h4>CocoaPods</h4>
+    <span class="status-req">REQUIRED for Flutter plugins</span>
+    <p>Flutter's iOS plugins use CocoaPods.<br>
+    Install: <code>sudo gem install cocoapods</code><br>
+    Then: <code>cd ios && pod install</code></p>
+  </div>
+</div>
+
+<!-- ── 3. Add iOS Support to Flutter ─────────────────────────────────────── -->
+<h2>3. Adding iOS Support to a Flutter Project</h2>
+<p>
+  Our project was created as Android-only. To add iOS support, run one command.
+  This creates the <code>ios/</code> folder with all required Xcode project files.
+</p>
+
+<pre><span class="cm"># Add iOS platform support to an existing Flutter project</span>
+flutter create --platforms=ios .
+
+<span class="cm"># Install iOS dependencies (CocoaPods)</span>
+cd ios
+pod install
+cd ..</pre>
+
+<pre><span class="cm"># Verify iOS is available</span>
+flutter devices
+<span class="cm"># Should list: iPhone Simulator or connected iPhone</span>
+
+<span class="cm"># Run on iOS Simulator</span>
+flutter run -d "iPhone 15"</pre>
+
+<!-- ── 4. Info.plist ────────────────────────────────────────────────────────── -->
+<h2>4. Configuring Info.plist</h2>
+<p>
+  <code>ios/Runner/Info.plist</code> is the iOS equivalent of <code>AndroidManifest.xml</code>.
+  Every permission your app uses must have a <strong>usage description</strong> here —
+  a human-readable explanation shown in the iOS permission dialog.
+</p>
+<p>
+  <strong>Unlike Android, iOS will crash at runtime if a usage description is missing —
+  there is no manifest permission tag, only these strings.</strong>
+</p>
+
+<pre><span class="cm">&lt;!-- ios/Runner/Info.plist — add inside &lt;dict&gt; --&gt;</span>
+
+<span class="cm">&lt;!-- Camera (Lecture 22) --&gt;</span>
+&lt;<span class="kw">key</span>&gt;NSCameraUsageDescription&lt;/<span class="kw">key</span>&gt;
+&lt;<span class="kw">string</span>&gt;We use your camera to let you set a profile photo.&lt;/<span class="kw">string</span>&gt;
+
+<span class="cm">&lt;!-- Photo Library (Lecture 22) --&gt;</span>
+&lt;<span class="kw">key</span>&gt;NSPhotoLibraryUsageDescription&lt;/<span class="kw">key</span>&gt;
+&lt;<span class="kw">string</span>&gt;We use your photo library to let you pick a profile photo.&lt;/<span class="kw">string</span>&gt;
+
+<span class="cm">&lt;!-- Location (Lecture 21) --&gt;</span>
+&lt;<span class="kw">key</span>&gt;NSLocationWhenInUseUsageDescription&lt;/<span class="kw">key</span>&gt;
+&lt;<span class="kw">string</span>&gt;We show nearby stores on the map using your location.&lt;/<span class="kw">string</span>&gt;</pre>
+
+<div class="warn">
+  Apple reviewers test every permission your app requests. If the usage description
+  does not clearly explain why the app needs it, the app will be <strong>rejected</strong>.
+  Write honest, user-friendly descriptions — not "Required for app functionality."
+</div>
+
+<!-- ── 5. Bundle ID & Capabilities ─────────────────────────────────────────── -->
+<h2>5. Bundle Identifier &amp; Capabilities</h2>
+
+<h3>5.1 Bundle Identifier</h3>
+<p>Set the Bundle ID in Xcode: open <code>ios/Runner.xcworkspace</code> in Xcode →
+select <em>Runner</em> in the project navigator → <em>Signing &amp; Capabilities</em>
+tab → set <em>Bundle Identifier</em> to your registered ID (e.g. <code>com.yourname.shopapp</code>).</p>
+
+<h3>5.2 Deployment Target</h3>
+<p>Equivalent to Android's <code>minSdk</code>. Set in Xcode under <em>General → Minimum Deployments</em>.</p>
+
+<table>
+  <tr><th>Recommendation</th><th>iOS version</th><th>Market coverage</th></tr>
+  <tr><td>Most apps</td><td>iOS 16.0</td><td>~90%+</td></tr>
+  <tr><td>Wider reach</td><td>iOS 15.0</td><td>~95%+</td></tr>
+  <tr><td>Latest features</td><td>iOS 17.0</td><td>~80%+</td></tr>
+</table>
+
+<h3>5.3 Capabilities (for push notifications, Firebase, etc.)</h3>
+<p>
+  In Xcode → <em>Signing &amp; Capabilities</em> → <em>+ Capability</em>:
+</p>
+<table>
+  <tr><th>Capability</th><th>When to add</th></tr>
+  <tr><td>Push Notifications</td><td>FCM / firebase_messaging (Lecture 20)</td></tr>
+  <tr><td>Background Modes</td><td>Background fetch, background processing</td></tr>
+  <tr><td>Associated Domains</td><td>Universal links, sign in with Apple</td></tr>
+  <tr><td>Sign In with Apple</td><td>If offering social login</td></tr>
+</table>
+
+<!-- ── 6. Code Signing ─────────────────────────────────────────────────────── -->
+<h2>6. Code Signing — The Key Difference from Android</h2>
+<p>
+  iOS code signing involves three interconnected pieces that must all match.
+  This is the part that confuses most developers coming from Android.
+</p>
+
+<div class="diagram">  THREE PIECES OF iOS CODE SIGNING
+  ──────────────────────────────────────────────────────────────────────
+  1. Certificate (.cer)
+     Proves YOU are an Apple-registered developer.
+     Generated in Keychain Access, uploaded to developer.apple.com.
+     Two types: Development (testing) and Distribution (App Store).
+
+  2. App ID / Bundle Identifier
+     Registered at developer.apple.com → Identifiers.
+     Ties the app to a specific bundle ID (e.g. com.yourname.shopapp).
+     Enables capabilities (push, CloudKit, etc.)
+
+  3. Provisioning Profile (.mobileprovision)
+     Links Certificate + App ID + (optionally) Device IDs together.
+     Four types:
+       • Development     → run on registered test devices
+       • Ad Hoc          → distribute to up to 100 registered devices
+       • App Store       → submit to the App Store
+       • Enterprise      → in-house distribution (separate $299/yr program)
+
+  ALL THREE MUST MATCH for a build to succeed.</div>
+
+<h3>Automatic Signing (Recommended for Beginners)</h3>
+<p>
+  Xcode can manage certificates and provisioning profiles automatically.
+  This is strongly recommended — manual signing is error-prone.
+</p>
+<ol style="padding-left:20px">
+  <li>Open <code>ios/Runner.xcworkspace</code> in Xcode</li>
+  <li>Select <em>Runner</em> → <em>Signing &amp; Capabilities</em></li>
+  <li>Check <strong>"Automatically manage signing"</strong></li>
+  <li>Select your team (your Developer account)</li>
+  <li>Xcode creates and renews certificates and profiles automatically</li>
+</ol>
+
+<!-- ── 7. Build ────────────────────────────────────────────────────────────── -->
+<h2>7. Building for Release</h2>
+
+<h3>Method A: Flutter CLI (simplest)</h3>
+<pre><span class="cm"># Build an unsigned release archive</span>
+flutter build ipa
+
+<span class="cm"># Build with specific export method</span>
+flutter build ipa --export-method app-store
+
+<span class="cm"># Output: build/ios/ipa/flutter_application_2.ipa</span></pre>
+
+<div class="warn">
+  <code>flutter build ipa</code> requires an <em>ExportOptions.plist</em> file for
+  distribution signing. For the simplest workflow, build and archive directly in
+  Xcode using Method B below.
+</div>
+
+<h3>Method B: Xcode Archive (most reliable)</h3>
+<ul class="steps">
+  <li>
+    <div class="step-num">1</div>
+    <div>Open <code>ios/Runner.xcworkspace</code> in Xcode (not .xcodeproj).</div>
+  </li>
+  <li>
+    <div class="step-num">2</div>
+    <div>In the device selector at the top, choose <strong>Any iOS Device (arm64)</strong> — not a simulator.</div>
+  </li>
+  <li>
+    <div class="step-num">3</div>
+    <div>Menu → <em>Product → Archive</em>. Xcode compiles a release build and opens the Organizer window.</div>
+  </li>
+  <li>
+    <div class="step-num">4</div>
+    <div>In the Organizer: select your archive → click <strong>Distribute App</strong>.</div>
+  </li>
+  <li>
+    <div class="step-num">5</div>
+    <div>Choose distribution method: <strong>TestFlight &amp; App Store</strong> for submission, or <strong>Ad Hoc</strong> for device installation.</div>
+  </li>
+  <li>
+    <div class="step-num">6</div>
+    <div>Xcode signs, validates, and uploads the build to App Store Connect automatically.</div>
+  </li>
+</ul>
+
+<!-- ── 8. TestFlight ───────────────────────────────────────────────────────── -->
+<h2>8. TestFlight — Beta Testing</h2>
+<p>
+  TestFlight is Apple's official beta distribution platform. Always use it
+  before submitting to production — it lets you find bugs with real users
+  without going through the full App Store review.
+</p>
+
+<div class="diagram">  TESTFLIGHT DISTRIBUTION
+  ──────────────────────────────────────────────────────────────────────
+  Internal Testers (up to 100)
+    → Apple Developer team members
+    → Available minutes after upload
+    → No review required
+
+  External Testers (up to 10,000)
+    → Anyone with an email invitation
+    → Requires a quick Beta App Review (1–2 days)
+    → They install via the TestFlight app</div>
+
+<ul class="steps">
+  <li>
+    <div class="step-num">1</div>
+    <div>Upload via Xcode Archive (Method B above) or Transporter app.</div>
+  </li>
+  <li>
+    <div class="step-num">2</div>
+    <div>Go to <code>appstoreconnect.apple.com</code> → your app → <em>TestFlight</em> tab.</div>
+  </li>
+  <li>
+    <div class="step-num">3</div>
+    <div>Wait for processing (10–30 minutes). Then the build appears under iOS builds.</div>
+  </li>
+  <li>
+    <div class="step-num">4</div>
+    <div>For internal testers: click the build → enable it for internal testing → add testers by email.</div>
+  </li>
+  <li>
+    <div class="step-num">5</div>
+    <div>For external testers: click <em>Add External Testers</em> → submit for Beta App Review → share the invite link after approval.</div>
+  </li>
+</ul>
+
+<!-- ── 9. App Store Connect ───────────────────────────────────────────────── -->
+<h2>9. App Store Connect — Submission Setup</h2>
+
+<ul class="steps">
+  <li>
+    <div class="step-num">1</div>
+    <div>
+      <strong>Create a new app</strong><br>
+      App Store Connect → <em>My Apps</em> → <em>+</em> → <em>New App</em>.<br>
+      Fill in: platform (iOS), name, primary language, Bundle ID, and SKU (any unique string).
+    </div>
+  </li>
+  <li>
+    <div class="step-num">2</div>
+    <div>
+      <strong>Fill in App Information</strong><br>
+      Category, age rating, copyright, support URL, marketing URL, privacy policy URL.
+    </div>
+  </li>
+  <li>
+    <div class="step-num">3</div>
+    <div>
+      <strong>Prepare the store listing</strong><br>
+      Promotional text (170 chars), description, keywords (100 chars total), what's new.
+    </div>
+  </li>
+  <li>
+    <div class="step-num">4</div>
+    <div>
+      <strong>Add screenshots</strong><br>
+      Required sizes: 6.9" (iPhone 16 Pro Max) and 12.9" (iPad Pro) are the most common.
+      You can take screenshots in the simulator using <em>File → Take Screenshot</em> in Xcode.
+    </div>
+  </li>
+  <li>
+    <div class="step-num">5</div>
+    <div>
+      <strong>Select the build</strong><br>
+      Under <em>Build</em>, click <em>+</em> and select the build uploaded from Xcode.
+    </div>
+  </li>
+  <li>
+    <div class="step-num">6</div>
+    <div>
+      <strong>Submit for review</strong><br>
+      Click <em>Add for Review</em> → <em>Submit to App Review</em>. Average review time: 1–2 days.
+      You'll receive an email when approved or rejected.
+    </div>
+  </li>
+</ul>
+
+<!-- ── 10. App Store Screenshot Sizes ────────────────────────────────────── -->
+<h2>10. Required Screenshot Sizes</h2>
+
+<table>
+  <tr><th>Device</th><th>Resolution</th><th>Required?</th></tr>
+  <tr><td>iPhone 6.9" (iPhone 16 Pro Max)</td><td>1320 × 2868 px</td><td>Required (covers most iPhones)</td></tr>
+  <tr><td>iPhone 6.5" (iPhone 14 Plus)</td><td>1284 × 2778 px</td><td>Optional if 6.9" provided</td></tr>
+  <tr><td>iPhone 5.5" (iPhone 8 Plus)</td><td>1242 × 2208 px</td><td>Required for older iPhones</td></tr>
+  <tr><td>iPad Pro 13" (M4)</td><td>2064 × 2752 px</td><td>Required if app supports iPad</td></tr>
+  <tr><td>iPad Pro 12.9"</td><td>2048 × 2732 px</td><td>Required if app supports iPad</td></tr>
+</table>
+
+<div class="tip">
+  Use the Xcode Simulator to take screenshots. Run the app on the required simulator
+  (iPhone 16 Pro Max), then press <kbd>Cmd+S</kbd> or <em>File → Save Screenshot</em>.
+  Screenshots are saved to the Desktop.
+</div>
+
+<!-- ── 11. Common Rejection Reasons ─────────────────────────────────────── -->
+<h2>11. Common App Store Rejection Reasons</h2>
+
+<table>
+  <tr><th>Rejection Reason</th><th>Fix</th></tr>
+  <tr><td>Missing privacy policy</td><td>Host a privacy policy page and add the URL in App Store Connect</td></tr>
+  <tr><td>Missing usage description in Info.plist</td><td>Add NSCameraUsageDescription etc. with clear text</td></tr>
+  <tr><td>App crashes on launch</td><td>Test on all required device sizes before submission</td></tr>
+  <tr><td>Placeholder or incomplete content</td><td>Remove any "lorem ipsum" text, debug screens, or test data</td></tr>
+  <tr><td>Login required with no demo account</td><td>Provide test credentials in the review notes field</td></tr>
+  <tr><td>App references other platforms ("Available on Android")</td><td>Remove all cross-platform references</td></tr>
+  <tr><td>Guideline 4.0 — Design: tab bar shows fewer than 2 tabs</td><td>Follow Apple's Human Interface Guidelines</td></tr>
+  <tr><td>Uses private APIs</td><td>Do not use any undocumented Apple APIs</td></tr>
+</table>
+
+<!-- ── 12. Pre-Release Checklist ─────────────────────────────────────────── -->
+<h2>12. Pre-Submission Checklist</h2>
+
+<ul class="checklist">
+  <li>Bundle ID registered at developer.apple.com and set in Xcode</li>
+  <li>Apple Developer account active ($99 fee paid and confirmed)</li>
+  <li>Automatic signing enabled in Xcode with correct team selected</li>
+  <li>Info.plist has usage descriptions for ALL permissions used</li>
+  <li>Deployment target set (iOS 16.0 recommended)</li>
+  <li>App tested on at least one physical iPhone and the required simulators</li>
+  <li>No crashes on any required device size</li>
+  <li>All test/debug code removed</li>
+  <li>App icon created (1024×1024 px, no transparency, no rounded corners — Apple adds them)</li>
+  <li>Screenshots taken for all required device sizes</li>
+  <li>Privacy policy URL live and accessible</li>
+  <li>App Store Connect listing fully filled out (no empty fields)</li>
+  <li>Age rating questionnaire completed</li>
+  <li>If app requires login: test credentials provided in review notes</li>
+</ul>
+
+<!-- ── 13. Flutter-Specific iOS Notes ────────────────────────────────────── -->
+<h2>13. Flutter-Specific iOS Notes</h2>
+
+<table>
+  <tr><th>Situation</th><th>What to do</th></tr>
+  <tr><td>After adding a new Flutter plugin</td><td>Run <code>cd ios && pod install</code> to install native iOS dependencies</td></tr>
+  <tr><td>Build fails with "no signing certificate"</td><td>Open Xcode → Signing &amp; Capabilities → re-select your team</td></tr>
+  <tr><td>Build fails with pod error</td><td>Run <code>cd ios && pod deintegrate && pod install</code></td></tr>
+  <tr><td>App works on simulator but not device</td><td>Check Info.plist permissions and device registration in developer portal</td></tr>
+  <tr><td>firebase_messaging on iOS</td><td>Extra steps required: APNs key, push notification capability, AppDelegate changes</td></tr>
+  <tr><td>Testing on a physical iPhone (free account)</td><td>A free Apple ID can install on 3 devices max. No TestFlight, no App Store.</td></tr>
+</table>
+
+<pre><span class="cm"># Common troubleshooting commands</span>
+flutter clean                     <span class="cm"># clear build cache</span>
+cd ios && pod install && cd ..    <span class="cm"># reinstall CocoaPods</span>
+flutter build ios --release       <span class="cm"># verify release build compiles</span>
+open ios/Runner.xcworkspace       <span class="cm"># open in Xcode for archiving</span></pre>
+
+<!-- ── Practice ───────────────────────────────────────────────────────────── -->
+<div class="practice">
+  <h2>Practice Tasks</h2>
+  <ol>
+    <li>Add iOS platform support to the project: run <code>flutter create --platforms=ios .</code> and then <code>cd ios && pod install</code>.</li>
+    <li>Open <code>ios/Runner.xcworkspace</code> in Xcode. Add all required usage descriptions to <code>Info.plist</code> (Camera, Photo Library, Location).</li>
+    <li>Run the app on the iOS Simulator using <code>flutter run -d "iPhone 15"</code> and verify it launches without errors.</li>
+    <li>Take screenshots of the app on the iPhone 16 Pro Max simulator for all five main screens (Home, Search, Cart, Map, Profile).</li>
+    <li><strong>If you have an Apple Developer account:</strong> Set your Bundle ID in Xcode, enable automatic signing, and create an Archive (<em>Product → Archive</em>). Verify the archive appears in the Xcode Organizer.</li>
+    <li><strong>Challenge:</strong> Create an App Store Connect listing with screenshots, description, and privacy policy URL. Submit a build for internal TestFlight testing.</li>
+  </ol>
+</div>
+
+</main>
+</body>
+</html>
